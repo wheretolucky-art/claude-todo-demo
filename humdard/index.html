@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Humdard</title>
+  <meta name="description" content="Humdard from Ek Villain, 0:15 to 0:45">
+  <meta name="theme-color" content="#0c0a10">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%B5%3C/text%3E%3C/svg%3E">
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0c0a10;
+      --text: #f5f0f3;
+      --muted: #a99fae;
+      --accent: #e8436a;
+      --track: rgba(255, 255, 255, 0.14);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      min-height: 100svh;
+      display: grid;
+      place-items: center;
+      padding: 32px 16px;
+      background: radial-gradient(70% 50% at 50% 0%, rgba(232, 67, 106, 0.28), transparent 70%), var(--bg);
+      color: var(--text);
+      font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      text-align: center;
+    }
+
+    main { width: 100%; max-width: 560px; }
+
+    .eyebrow {
+      margin: 0 0 0.25rem;
+      color: var(--accent);
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font: italic 600 clamp(2.5rem, 12vw, 3.5rem)/1.1 Georgia, "Times New Roman", serif;
+    }
+
+    .meta { margin: 0.35rem 0 1.5rem; color: var(--muted); }
+
+    .player {
+      position: relative;
+      min-height: 200px; /* YouTube's minimum player size */
+      border-radius: 14px;
+      overflow: hidden;
+      background: #000;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
+    }
+
+    /* 16:9 via padding rather than aspect-ratio, which would widen the box to honour min-height */
+    .player::before {
+      content: "";
+      display: block;
+      padding-top: 56.25%;
+    }
+
+    .player iframe {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+
+    .progress {
+      height: 4px;
+      margin-top: 1.25rem;
+      border-radius: 2px;
+      background: var(--track);
+      overflow: hidden;
+    }
+
+    #bar {
+      display: block;
+      width: 0;
+      height: 100%;
+      background: var(--accent);
+      transition: width 0.25s linear;
+    }
+
+    .times {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 0.4rem;
+      color: var(--muted);
+      font-size: 0.8rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .status { margin: 1rem 0 0.5rem; font-size: 1.05rem; }
+
+    .yt { color: var(--muted); font-size: 0.85rem; }
+
+    .yt.cta {
+      display: inline-block;
+      margin-top: 0.25rem;
+      padding: 0.7rem 1.3rem;
+      border-radius: 999px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 600;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <p class="eyebrow">Ek Villain</p>
+    <h1>Humdard</h1>
+    <p class="meta">Arijit Singh · Mithoon</p>
+
+    <div class="player"><div id="player"></div></div>
+
+    <div class="progress" id="progress" role="progressbar" aria-label="Clip progress"
+         aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="bar"></span></div>
+    <div class="times"><span id="now"></span><span id="end"></span></div>
+
+    <p class="status" id="status" aria-live="polite">Loading…</p>
+    <a class="yt" id="yt">Not playing? Open on YouTube</a>
+  </main>
+
+  <script>
+    // Settings: which YouTube video to play, and which part of it (in seconds).
+    const VIDEO_ID = "FJ55SHCzt88"; // "Humdard Full Video Song | Ek Villain | Arijit Singh | Mithoon"
+    const START = 15;
+    const END = 45;
+
+    const $ = (id) => document.getElementById(id);
+    let player, timer;
+
+    $("end").textContent = fmt(END);
+    $("yt").href = `https://www.youtube.com/watch?v=${VIDEO_ID}&t=${START}s`;
+    show(START);
+
+    const api = document.createElement("script");
+    api.src = "https://www.youtube.com/iframe_api";
+    api.onerror = fail;
+    document.head.append(api);
+
+    // Called by the YouTube IFrame API once it has loaded.
+    function onYouTubeIframeAPIReady() {
+      player = new YT.Player("player", {
+        width: "100%",
+        height: "100%",
+        videoId: VIDEO_ID,
+        // Phones won't start sound without a tap, so autoplay only kicks in where the browser allows it.
+        playerVars: { start: START, end: END, autoplay: 1, playsinline: 1, rel: 0, origin: location.origin },
+        events: {
+          onReady: () => setStatus("Tap ▶ on the video to play"),
+          onStateChange,
+          onError: fail,
+        },
+      });
+    }
+
+    function onStateChange({ data }) {
+      clearInterval(timer);
+      if (data === YT.PlayerState.PLAYING) {
+        setStatus("Playing…");
+        tick();
+        timer = setInterval(tick, 250);
+      } else if (data === YT.PlayerState.PAUSED) {
+        setStatus("Paused. Tap ▶ to continue");
+      } else if (data === YT.PlayerState.ENDED) {
+        rewind();
+      }
+    }
+
+    // The player's own `end` is skipped if the viewer seeks past it, so enforce it here too.
+    function tick() {
+      const t = player.getCurrentTime();
+      if (t >= END) rewind();
+      else show(t);
+    }
+
+    // Stop and cue the clip again, so the next tap replays it from START.
+    function rewind() {
+      clearInterval(timer);
+      player.cueVideoById({ videoId: VIDEO_ID, startSeconds: START, endSeconds: END });
+      show(END);
+      setStatus("Tap ▶ to play it again");
+    }
+
+    function show(t) {
+      t = Math.min(Math.max(t, START), END);
+      const pct = ((t - START) / (END - START)) * 100;
+      $("bar").style.width = pct + "%";
+      $("progress").setAttribute("aria-valuenow", Math.round(pct));
+      $("now").textContent = fmt(t);
+    }
+
+    function fail() {
+      setStatus("The video can't play on this page.");
+      $("yt").textContent = "Open on YouTube";
+      $("yt").classList.add("cta");
+    }
+
+    function setStatus(text) {
+      $("status").textContent = text;
+    }
+
+    function fmt(s) {
+      s = Math.floor(s);
+      return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
+    }
+  </script>
+</body>
+</html>
