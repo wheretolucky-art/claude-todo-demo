@@ -1,0 +1,87 @@
+# Video drop alerts
+
+Sends a Telegram message within about a minute of an editor uploading a video into the
+**Completed Videos** folder in Google Drive, including all its month and week folders.
+It runs on Google's servers for free, so nothing has to stay open, and the hub itself
+doesn't change.
+
+An alert looks like this:
+
+```
+🎬 New video dropped
+30/9 Acme 4 - Priya.mp4
+👤 Priya · 248 MB
+📁 Completed Videos › October › Week 1
+[ ▶️ Watch video ]  [ 📋 Open hub ]
+```
+
+Files with "(revision)" in the name say **🔁 Revision dropped** instead. Each file alerts
+once. Files that were already in the folder before setup never alert, even if someone
+renames them later.
+
+## 1. Make the Telegram bot (2 minutes, on a phone)
+
+1. In Telegram, open **@BotFather** and send `/newbot`.
+2. Pick a name (for example "Video Drops") and a username that ends in `bot`.
+3. BotFather replies with a **token** that looks like `123456789:AAH...`. Copy it and keep
+   it private: anyone with it can send messages as the bot.
+4. The person who should get alerts opens the bot's `t.me/...` link from that reply and
+   taps **Start**. Anyone else who should get alerts does the same.
+
+## 2. Add the script (5 minutes, on a computer)
+
+Sign in to a Google account that can open the Completed Videos folder, ideally the one that
+owns it.
+
+1. Go to [script.google.com](https://script.google.com), click **New project**, and name it
+   "Video drop alerts".
+2. Click ⚙️ **Project Settings** and tick **Show "appsscript.json" manifest file in editor**.
+3. Go back to the editor (`< >`), open `appsscript.json`, and replace everything in it with
+   [appsscript.json](appsscript.json). This switches on the Drive API and limits the script
+   to read-only access to Drive.
+4. Open `Code.gs` and replace everything in it with [Code.gs](Code.gs).
+5. Fill in the top of `Code.gs`:
+   - `TELEGRAM_BOT_TOKEN`: the token from BotFather.
+   - `COMPLETED_FOLDER`: the Completed Videos folder's link. Open the folder in Drive and
+     copy the address bar.
+   - `HUB_URL` (optional): the hub's address, for an "Open hub" button on each alert.
+6. Save with Ctrl+S (⌘S on a Mac).
+7. In the toolbar, choose **setup** from the function list and click **Run**. Google asks for
+   permission: click **Review permissions**, pick the account, then **Advanced** →
+   **Go to Video drop alerts (unsafe)** → **Allow**. The warning appears because this is
+   your own script rather than a published app.
+8. The log ends with `Watching "Completed Videos"`, and Telegram gets
+   **✅ Video alerts are on**.
+
+## 3. Test it
+
+Upload any short video into a week folder inside Completed Videos. Telegram should show the
+alert within about a minute. Delete the test file afterwards.
+
+## Alerts on a computer
+
+Install [Telegram Desktop](https://desktop.telegram.org), or open
+[web.telegram.org](https://web.telegram.org) in Chrome and allow notifications.
+
+## Good to know
+
+- **Add someone later:** they tap **Start** on the bot, then run `setup` again.
+- **Pause alerts:** run `stop`. Run `setup` to switch them back on.
+- **Check that Telegram works:** run `sendTestAlert`.
+- **If something goes wrong,** Google emails the script's owner a summary of failed runs.
+  The **Executions** page (left sidebar) shows the details. A failed alert is retried on the
+  next check, so nothing is lost.
+- **Run time:** free Google accounts get 90 minutes of timer run time a day. A check takes
+  about a second, so checking every minute stays well under that. To check less often, set
+  `CHECK_EVERY_MINUTES` to 5 and run `setup` again.
+
+## For whoever maintains this
+
+- Every check reads Drive's changes feed (one request when nothing happened), keeps uploaded
+  files whose folder chain leads to the watched folder, and remembers alerted file IDs in
+  Script Properties. When a Telegram send fails, the changes position isn't moved forward,
+  so the next check retries. Alerts that already went out are remembered and not repeated.
+- Telegram is used rather than ntfy.sh because ntfy's free server limits messages per IP
+  address, and Apps Script shares its IP addresses with other people's scripts.
+- Tests run `Code.gs` against fake Drive, Telegram and Apps Script services:
+  `node --test video-drop-alerts/test/code.test.js`
