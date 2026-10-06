@@ -25,13 +25,15 @@ renames them later.
 2. Pick a name (for example "Video Drops") and a username that ends in `bot`.
 3. BotFather replies with a **token** that looks like `123456789:AAH...`. Copy it and keep
    it private: anyone with it can send messages as the bot.
-4. The person who should get alerts opens the bot's `t.me/...` link from that reply and
-   taps **Start**. Anyone else who should get alerts does the same.
+4. BotFather's reply also has the bot's `t.me/...` link. Send it to whoever should get
+   alerts (your client). They open it and tap **Start**.
 
 ## 2. Add the script (5 minutes, on a computer)
 
-Sign in to a Google account that can open the Completed Videos folder, ideally the one that
-owns it.
+Use your own Google account. It doesn't have to be your client's, but it must be able to
+open the Completed Videos folder. If it can't, ask your client to share the folder with your
+Gmail: in Google Drive, right-click **Completed Videos** → **Share**, add your Gmail as a
+**Viewer**, and send. Viewer is enough, because the script only reads the folder.
 
 1. Go to [script.google.com](https://script.google.com), click **New project**, and name it
    "Video drop alerts".
@@ -55,8 +57,9 @@ owns it.
 
 ## 3. Test it
 
-Upload any short video into a week folder inside Completed Videos. Telegram should show the
-alert within about a minute. Delete the test file afterwards.
+When the next video lands in Completed Videos, Telegram should show the alert within about a
+minute of the upload finishing. To test straight away instead, upload any short video into a
+week folder and delete it afterwards. That needs **Editor** access to the folder.
 
 ## Alerts on a computer
 
@@ -65,6 +68,8 @@ Install [Telegram Desktop](https://desktop.telegram.org), or open
 
 ## Good to know
 
+- **Slow uploads:** the alert comes when an upload finishes, not when it starts. A video that
+  syncs overnight alerts when it lands in Drive.
 - **Add someone later:** they tap **Start** on the bot, then run `setup` again.
 - **Pause alerts:** run `stop`. Run `setup` to switch them back on.
 - **Check that Telegram works:** run `sendTestAlert`.
