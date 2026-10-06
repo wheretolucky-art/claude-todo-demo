@@ -11,6 +11,9 @@ const vm = require('node:vm');
 const CODE = fs.readFileSync(path.join(__dirname, '..', 'Code.gs'), 'utf8');
 const BOT_TOKEN = '123456:TEST';
 const ROOT = 'completedRoot';
+const INVITE_CODE = '0123abcd456789ef'; // from the fake Utilities.getUuid below
+const INVITE_LINK = 'https://t.me/video_drops_bot?start=' + INVITE_CODE;
+const escape = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /** A small in-memory Drive with a changes feed, plus a Telegram bot and the Apps Script services. */
 function createWorld({ pageSize = 1000 } = {}) {
@@ -42,6 +45,10 @@ function createWorld({ pageSize = 1000 } = {}) {
   function touch(id, update = {}) {
     Object.assign(drive.items[id], update);
     drive.changes.push(id);
+  }
+  let nextUpdateId = 2;
+  function sendToBot(chat, text) {
+    telegram.updates.push({ update_id: nextUpdateId++, message: { chat, text } });
   }
 
   addFolder('myDrive', 'My Drive', null);
@@ -113,7 +120,13 @@ function createWorld({ pageSize = 1000 } = {}) {
     const method = url.split('/').pop();
     const payload = JSON.parse(options.payload);
     if (method === 'getMe') return json(200, { ok: true, result: { username: 'video_drops_bot' } });
-    if (method === 'getUpdates') return json(200, { ok: true, result: telegram.updates });
+    if (method === 'getUpdates') {
+      if (telegram.failUpdates) throw new Error('Address unavailable');
+      // Like Telegram: asking from an offset confirms, and forgets, everything before it.
+      const offset = payload.offset || 0;
+      telegram.updates = telegram.updates.filter((update) => update.update_id >= offset);
+      return json(200, { ok: true, result: telegram.updates });
+    }
     if (method === 'sendMessage') {
       const reply = telegram.replies.shift();
       if (reply && reply.network) throw new Error('Address unavailable');
@@ -199,7 +212,10 @@ function createWorld({ pageSize = 1000 } = {}) {
       }),
     },
     DriveApp: { getFolderById: folderHandle },
-    Utilities: { sleep: (ms) => sleeps.push(ms) },
+    Utilities: {
+      sleep: (ms) => sleeps.push(ms),
+      getUuid: () => '0123abcd-4567-89ef-0123-456789abcdef',
+    },
   });
   vm.runInContext(CODE, context);
   vm.runInContext(
@@ -210,7 +226,7 @@ function createWorld({ pageSize = 1000 } = {}) {
   );
 
   return {
-    drive, telegram, props, cache, triggers, logs, sleeps, addFile, touch, addFolder,
+    drive, telegram, props, cache, triggers, logs, sleeps, addFile, touch, addFolder, sendToBot,
     run: (code) => vm.runInContext(code, context),
     setLocked: (value) => { locked = value; },
   };
@@ -235,6 +251,7 @@ test('setup remembers existing files, starts the timer and sends a confirmation'
   assert.equal(world.telegram.sent[0].chat_id, 111);
   assert.match(world.telegram.sent[0].text, /Video alerts are on/);
   assert.match(world.telegram.sent[0].text, /<b>Completed Videos<\/b>/);
+  assert.match(world.telegram.sent[0].text, new RegExp('send them this link:\\n' + escape(INVITE_LINK) + '$'));
   assert.equal(world.telegram.sent[0].reply_markup.inline_keyboard[0][0].url, 'https://hub.example.com');
 
   assert.equal(world.props.rootId, ROOT);
@@ -242,7 +259,120 @@ test('setup remembers existing files, starts the timer and sends a confirmation'
   const seen = world.props.seen0.split(',');
   assert.deepEqual(seen.sort(), ['old1', 'old2']); // not the raw footage outside the folder
   assert.deepEqual(JSON.parse(world.props.chats), [{ id: 111, name: 'Sam' }]);
-  assert.ok(world.logs.includes('Watching "%s" (%s files already there). Alerts go to: %s Completed Videos 2 Sam'));
+  assert.equal(world.props.inviteCode, INVITE_CODE);
+  assert.equal(world.props.lastUpdateId, '1');
+  assert.deepEqual(world.logs, [
+    'Watching "%s" (%s files already there). Completed Videos 2',
+    'Alerts go to: Sam',
+    'Invite link. Anyone who opens it and taps Start gets alerts: %s ' + INVITE_LINK,
+  ]);
+});
+
+test('running setup again keeps the same invite link', () => {
+  const world = setUp();
+  world.run('setup()');
+  assert.equal(world.props.inviteCode, INVITE_CODE);
+  world.logs.length = 0;
+  world.run('showInviteLink()');
+  assert.deepEqual(world.logs, ['Invite link. Anyone who opens it and taps Start gets alerts: %s ' + INVITE_LINK]);
+});
+
+test('opening the invite link adds someone without running setup again', () => {
+  const world = setUp();
+  world.sendToBot({ id: 222, type: 'private', first_name: 'Priya' }, '/start ' + INVITE_CODE);
+  world.run('checkForNewVideos()');
+
+  assert.deepEqual(JSON.parse(world.props.chats), [{ id: 111, name: 'Sam' }, { id: 222, name: 'Priya' }]);
+  assert.deepEqual(world.telegram.sent.map((m) => [m.chat_id, m.text.split('\n')[0]]), [
+    [111, '👋 <b>Priya</b> joined the video alerts.'],
+    [222, '✅ <b>You\'re in</b>'],
+  ]);
+  assert.match(world.telegram.sent[1].text, /lands in <b>Completed Videos<\/b>/);
+  assert.equal(world.props.lastUpdateId, '2');
+
+  // From now on both get the alerts, and the join isn't handled twice.
+  world.telegram.sent.length = 0;
+  world.addFile('a', 'first.mp4', 'oct-w1');
+  world.run('checkForNewVideos()');
+  assert.deepEqual(world.telegram.sent.map((m) => m.chat_id), [111, 222]);
+});
+
+test('someone who joins gets the alert for a video that lands in the same minute', () => {
+  const world = setUp();
+  world.sendToBot({ id: 222, type: 'private', first_name: 'Priya' }, '/start ' + INVITE_CODE);
+  world.addFile('a', 'first.mp4', 'oct-w1');
+  world.telegram.sent.length = 0;
+  world.run('checkForNewVideos()');
+  const alerts = world.telegram.sent.filter((m) => /New video dropped/.test(m.text));
+  assert.deepEqual(alerts.map((m) => m.chat_id), [111, 222]);
+});
+
+test('a plain Start or a wrong code is turned away, once', () => {
+  const world = setUp();
+  world.sendToBot({ id: 333, type: 'private', first_name: 'Stranger' }, '/start');
+  world.sendToBot({ id: 444, type: 'private', first_name: 'Guesser' }, '/start 1234');
+  world.sendToBot({ id: 555, type: 'private', first_name: 'Chatty' }, 'hello?');
+  world.run('checkForNewVideos()');
+
+  assert.deepEqual(JSON.parse(world.props.chats), [{ id: 111, name: 'Sam' }]);
+  assert.deepEqual(world.telegram.sent.map((m) => m.chat_id), [333, 444]);
+  assert.match(world.telegram.sent[0].text, /Ask the person who runs it for the invite link/);
+
+  world.run('checkForNewVideos()');
+  assert.equal(world.telegram.sent.length, 2);
+});
+
+test('running setup again does not let in someone who pressed a plain Start', () => {
+  const world = setUp();
+  world.sendToBot({ id: 333, type: 'private', first_name: 'Stranger' }, '/start');
+  world.run('setup()');
+  assert.deepEqual(JSON.parse(world.props.chats), [{ id: 111, name: 'Sam' }]);
+
+  world.telegram.sent.length = 0;
+  world.run('checkForNewVideos()');
+  assert.deepEqual(world.telegram.sent.map((m) => m.chat_id), [333]); // turned away
+  assert.match(world.telegram.sent[0].text, /invite link/);
+});
+
+test('someone who pressed Start before setup is not turned away afterwards', () => {
+  const world = setUp(); // Sam pressed a plain Start before setup
+  world.run('checkForNewVideos()');
+  assert.equal(world.telegram.sent.length, 0);
+});
+
+test('opening the invite link twice does not add anyone twice', () => {
+  const world = setUp();
+  world.sendToBot({ id: 222, type: 'private', first_name: 'Priya' }, '/start ' + INVITE_CODE);
+  world.sendToBot({ id: 222, type: 'private', first_name: 'Priya' }, '/start ' + INVITE_CODE);
+  world.run('checkForNewVideos()');
+  assert.equal(JSON.parse(world.props.chats).length, 2);
+  assert.equal(world.telegram.sent[2].text, '✅ You already get video alerts here.');
+});
+
+test('a group can join with the invite link', () => {
+  const world = setUp();
+  world.sendToBot({ id: -1001, type: 'supergroup', title: 'Editing team' },
+    '/start@video_drops_bot ' + INVITE_CODE);
+  world.run('checkForNewVideos()');
+  assert.deepEqual(JSON.parse(world.props.chats)[1], { id: -1001, name: 'Editing team' });
+});
+
+test('a setup from before invite links never lets a plain Start in', () => {
+  const world = setUp();
+  delete world.props.inviteCode;
+  world.sendToBot({ id: 333, type: 'private', first_name: 'Stranger' }, '/start');
+  world.sendToBot({ id: 444, type: 'private', first_name: 'Other' }, '/start undefined');
+  world.run('checkForNewVideos()');
+  assert.equal(JSON.parse(world.props.chats).length, 1);
+});
+
+test('a Telegram hiccup while looking for new people does not hold up video alerts', () => {
+  const world = setUp();
+  world.telegram.failUpdates = true;
+  world.addFile('a', 'first.mp4', 'oct-w1');
+  world.run('checkForNewVideos()');
+  assert.equal(world.telegram.sent.length, 1);
+  assert.ok(world.logs.some((line) => /Couldn't check the bot for new people/.test(line)));
 });
 
 test('a change to a file that was already alerted does not rewrite the saved list', () => {
@@ -446,11 +576,20 @@ test('a check that is already running is not run twice', () => {
   assert.equal(world.telegram.sent.length, 1);
 });
 
-test('setup explains what to do when nobody has pressed Start', () => {
+test('setup works before anyone has pressed Start, and the invite link brings people in', () => {
   const world = createWorld();
   world.telegram.updates = [];
-  assert.throws(() => world.run('setup()'), /Open https:\/\/t\.me\/video_drops_bot in Telegram, press Start/);
-  assert.equal(world.triggers.length, 0);
+  world.run('setup()');
+  assert.equal(world.triggers.length, 1);
+  assert.equal(world.telegram.sent.length, 0);
+  assert.ok(world.logs.includes('Nobody gets alerts yet.'));
+  assert.equal(world.props.lastUpdateId, undefined);
+
+  world.sendToBot({ id: 222, type: 'private', first_name: 'Priya' }, '/start ' + INVITE_CODE);
+  world.run('checkForNewVideos()');
+  assert.deepEqual(JSON.parse(world.props.chats), [{ id: 222, name: 'Priya' }]);
+  assert.deepEqual(world.telegram.sent.map((m) => m.chat_id), [222]); // only the welcome
+  assert.ok(!world.logs.some((line) => /Nobody gets alerts\. /.test(line)), 'no false alarm for the first person');
 });
 
 test('setup explains a wrong folder link and a disabled Drive API', () => {

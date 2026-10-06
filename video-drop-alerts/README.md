@@ -25,8 +25,7 @@ renames them later.
 2. Pick a name (for example "Video Drops") and a username that ends in `bot`.
 3. BotFather replies with a **token** that looks like `123456789:AAH...`. Copy it and keep
    it private: anyone with it can send messages as the bot.
-4. BotFather's reply also has the bot's `t.me/...` link. Send it to whoever should get
-   alerts (your client). They open it and tap **Start**.
+4. That's all for now. After setup you'll get an invite link to send to your client.
 
 ## 2. Add the script (5 minutes, on a computer)
 
@@ -52,8 +51,10 @@ Gmail: in Google Drive, right-click **Completed Videos** → **Share**, add your
    permission: click **Review permissions**, pick the account, then **Advanced** →
    **Go to Video drop alerts (unsafe)** → **Allow**. The warning appears because this is
    your own script rather than a published app.
-8. The log ends with `Watching "Completed Videos"`, and Telegram gets
-   **✅ Video alerts are on**.
+8. The log ends with an **invite link** like `https://t.me/YourBot?start=...`. Send it to your
+   client. They open it, tap **Start**, and get **✅ You're in** within a minute. Nobody has to
+   run anything again. Anyone with the link can join, so only send it to people who should get
+   alerts. If someone finds the bot without the link, the bot turns them away.
 
 ## 3. Test it
 
@@ -70,7 +71,10 @@ Install [Telegram Desktop](https://desktop.telegram.org), or open
 
 - **Slow uploads:** the alert comes when an upload finishes, not when it starts. A video that
   syncs overnight alerts when it lands in Drive.
-- **Add someone later:** they tap **Start** on the bot, then run `setup` again.
+- **Add someone later:** send them the invite link. They're added within a minute, and
+  everyone already on the list gets a "👋 ... joined" message. Lost the link? Run
+  `showInviteLink`.
+- **Leave the alerts:** block the bot in Telegram. The script drops them from the list.
 - **Pause alerts:** run `stop`. Run `setup` to switch them back on.
 - **Check that Telegram works:** run `sendTestAlert`.
 - **If something goes wrong,** Google emails the script's owner a summary of failed runs.

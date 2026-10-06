@@ -31,8 +31,9 @@ const CHUNK_CHARS_ = 2000; // stays under the 9 KB limit per stored value
 const FOLDER_CACHE_SECONDS_ = 6 * 60 * 60;
 
 /**
- * Run once after filling in CONFIG. Running it again is safe: use it to add people
- * who pressed Start on the bot later, or after changing COMPLETED_FOLDER.
+ * Run once after filling in CONFIG. It prints an invite link: anyone who opens it and taps
+ * Start gets alerts from then on, without running anything again. Running setup again is
+ * safe, and needed after changing COMPLETED_FOLDER or CHECK_EVERY_MINUTES.
  */
 function setup() {
   checkInterval_();
@@ -45,20 +46,24 @@ function setup() {
       'account can open the folder in Drive.');
   }
 
+  // On the first setup, people who already pressed Start get alerts too. After that, people
+  // join through the invite link (see acceptNewMembers_): a plain Start isn't enough.
+  const store = PropertiesService.getScriptProperties();
+  const saved = store.getProperties();
   const bot = telegram_('getMe');
-  const chats = mergeChats_(loadChats_(), chatsFromUpdates_());
-  if (!chats.length) {
-    throw new Error('Nobody has started the bot yet. Open https://t.me/' + bot.username +
-      ' in Telegram, press Start, then run setup again.');
-  }
+  const updates = saved.inviteCode ? [] : telegram_('getUpdates', {});
+  const chats = mergeChats_(loadChats_(), updates.map(function (update) {
+    const message = update.message || update.edited_message || update.channel_post ||
+      update.my_chat_member;
+    return message && message.chat && chatInfo_(message.chat);
+  }).filter(Boolean));
 
   // Start reading changes from now. Taken before the scan below, so an upload that lands
   // mid-scan is either in the scan or in the changes, never in neither.
   const pageToken = driveGet_('/changes/startPageToken', { supportsAllDrives: true }).startPageToken;
 
   // Files already in the folder never trigger an alert, even if someone renames them later.
-  const store = PropertiesService.getScriptProperties();
-  const seen = loadSeen_(store.getProperties());
+  const seen = loadSeen_(saved);
   const existing = addFolderFiles_(root, seen);
 
   const state = seenToProperties_(seen);
@@ -66,20 +71,30 @@ function setup() {
   state.rootName = root.getName();
   state.chats = JSON.stringify(chats);
   state.pageToken = pageToken;
+  state.botUsername = bot.username;
+  state.inviteCode = saved.inviteCode || Utilities.getUuid().replace(/-/g, '').slice(0, 16);
+  if (updates.length) state.lastUpdateId = String(updates[updates.length - 1].update_id);
   store.setProperties(state);
 
   stop();
   ScriptApp.newTrigger('checkForNewVideos').timeBased().everyMinutes(CONFIG.CHECK_EVERY_MINUTES).create();
 
-  const result = sendToChats_(
-    '✅ <b>Video alerts are on</b>\nYou\'ll get a message here when a new video lands in <b>' +
-    escapeHtml_(root.getName()) + '</b>.', hubButtons_());
-  if (!result.sent) {
-    throw new Error('Alerts are switched on, but the test message to Telegram failed. Check the ' +
-      'execution log, then run sendTestAlert.');
+  const link = inviteLink_(state);
+  if (chats.length) {
+    const result = sendToChats_(
+      '✅ <b>Video alerts are on</b>\nYou\'ll get a message here when a new video lands in <b>' +
+      escapeHtml_(root.getName()) + '</b>.\n\nTo add someone, send them this link:\n' +
+      escapeHtml_(link), hubButtons_());
+    if (!result.sent) {
+      throw new Error('Alerts are switched on, but the test message to Telegram failed. Check the ' +
+        'execution log, then run sendTestAlert.');
+    }
   }
-  console.log('Watching "%s" (%s files already there). Alerts go to: %s',
-    root.getName(), existing, loadChats_().map(function (c) { return c.name; }).join(', '));
+  console.log('Watching "%s" (%s files already there).', root.getName(), existing);
+  console.log(chats.length
+    ? 'Alerts go to: ' + loadChats_().map(function (c) { return c.name; }).join(', ')
+    : 'Nobody gets alerts yet.');
+  console.log('Invite link. Anyone who opens it and taps Start gets alerts: %s', link);
 }
 
 /** Runs on the timer that setup() creates. */
@@ -92,6 +107,13 @@ function checkForNewVideos() {
     const saved = store.getProperties();
     if (!saved.pageToken || !saved.rootId) throw new Error('Run setup first.');
     if (saved.rootId !== folderId_()) throw new Error('COMPLETED_FOLDER has changed. Run setup again.');
+
+    // 0. Add people who opened the invite link. A Telegram hiccup here mustn't hold up alerts.
+    try {
+      acceptNewMembers_(saved);
+    } catch (e) {
+      console.error('Couldn\'t check the bot for new people: %s', e.message);
+    }
 
     // 1. Every file that changed anywhere in Drive since the last check.
     const changed = {};
@@ -156,6 +178,13 @@ function checkForNewVideos() {
   }
 }
 
+/** Prints the invite link again. */
+function showInviteLink() {
+  const saved = PropertiesService.getScriptProperties().getProperties();
+  if (!saved.inviteCode) throw new Error('Run setup first.');
+  console.log('Invite link. Anyone who opens it and taps Start gets alerts: %s', inviteLink_(saved));
+}
+
 /** Sends a test message to everyone who gets alerts. */
 function sendTestAlert() {
   const result = sendToChats_('🔔 <b>Test alert</b>\nVideo alerts can reach you here.', hubButtons_());
@@ -208,7 +237,7 @@ function hubButtons_() {
 function sendToChats_(text, buttons) {
   const chats = loadChats_();
   if (!chats.length) {
-    console.error('Nobody gets alerts. Press Start on the bot in Telegram, then run setup again.');
+    console.error('Nobody gets alerts. Send the invite link to whoever should (run showInviteLink to see it).');
     return { sent: 0, delivered: true, failures: 1 };
   }
   const keep = [];
@@ -238,7 +267,9 @@ function sendToChats_(text, buttons) {
   });
 
   if (keep.length !== chats.length) saveChats_(keep);
-  if (!keep.length) console.error('Nobody gets alerts any more. Press Start on the bot, then run setup again.');
+  if (!keep.length) {
+    console.error('Nobody gets alerts any more. Send the invite link to whoever should (run showInviteLink to see it).');
+  }
   return { sent: sent, delivered: sent > 0 || waiting === 0, failures: failures };
 }
 
@@ -280,17 +311,61 @@ function telegram_(method, payload) {
   throw new Error('Telegram ' + method + ' failed (' + res.code + '): ' + res.description);
 }
 
-/** Chats that messaged the bot (pressed Start) in the last 24 hours. */
-function chatsFromUpdates_() {
-  return telegram_('getUpdates', {}).map(function (update) {
-    const message = update.message || update.edited_message || update.channel_post ||
-      update.my_chat_member;
-    return message && message.chat;
-  }).filter(Boolean).map(function (chat) {
-    const name = chat.title || [chat.first_name, chat.last_name].filter(Boolean).join(' ') ||
-      (chat.username ? '@' + chat.username : String(chat.id));
-    return { id: chat.id, name: name };
+/**
+ * Adds everyone who opened the invite link (which sends the bot "/start <invite code>")
+ * since the last check, and welcomes them. A plain Start, without the code, is turned away:
+ * anyone on Telegram can find the bot, but only people with the link should get alerts.
+ */
+function acceptNewMembers_(saved) {
+  const updates = telegram_('getUpdates', {
+    offset: Number(saved.lastUpdateId || 0) + 1, // also tells Telegram the earlier ones are handled
+    timeout: 0,
+    allowed_updates: ['message'],
   });
+  if (!updates.length) return;
+
+  const store = PropertiesService.getScriptProperties();
+  updates.forEach(function (update) {
+    const message = update.message;
+    const start = message && message.text && message.text.match(/^\/start(?:@\w+)?(?:\s+(\S+))?/);
+    if (!start) return;
+
+    const chat = chatInfo_(message.chat);
+    const known = loadChats_().some(function (c) { return c.id === chat.id; });
+    if (!saved.inviteCode || start[1] !== saved.inviteCode) {
+      if (!known) {
+        telegramRaw_('sendMessage', { chat_id: chat.id,
+          text: '🔒 This bot sends private video alerts. Ask the person who runs it for the invite link.' });
+      }
+      return;
+    }
+    if (known) {
+      telegramRaw_('sendMessage', { chat_id: chat.id, text: '✅ You already get video alerts here.' });
+      return;
+    }
+
+    // Tell the people already on the list, so nobody joins unnoticed.
+    if (loadChats_().length) sendToChats_('👋 <b>' + escapeHtml_(chat.name) + '</b> joined the video alerts.', []);
+    saveChats_(loadChats_().concat([chat]));
+    telegramRaw_('sendMessage', {
+      chat_id: chat.id,
+      parse_mode: 'HTML',
+      text: '✅ <b>You\'re in</b>\nYou\'ll get a message here when a new video lands in <b>' +
+        escapeHtml_(saved.rootName) + '</b>.',
+    });
+    console.log('%s joined the video alerts.', chat.name);
+  });
+  store.setProperty('lastUpdateId', String(updates[updates.length - 1].update_id));
+}
+
+function chatInfo_(chat) {
+  const name = chat.title || [chat.first_name, chat.last_name].filter(Boolean).join(' ') ||
+    (chat.username ? '@' + chat.username : String(chat.id));
+  return { id: chat.id, name: name };
+}
+
+function inviteLink_(saved) {
+  return 'https://t.me/' + saved.botUsername + '?start=' + saved.inviteCode;
 }
 
 function mergeChats_(saved, found) {
