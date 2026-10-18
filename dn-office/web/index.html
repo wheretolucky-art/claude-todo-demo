@@ -757,8 +757,14 @@ dialog.sheet.mini{top:auto;bottom:0;height:auto;max-height:90%;margin:0;border-r
 
   /* ---------- back button ---------- */
   var guarded = false, skipPop = false;
-  function guard(){ if (!guarded && (state.sheet || state.view !== 'today')){ history.pushState({ dn:1 }, ''); guarded = true; } }
-  function unguard(){ if (guarded && !state.sheet && state.view === 'today'){ guarded = false; skipPop = true; history.back(); } }
+  function guard(){ if (NATIVE) return; if (!guarded && (state.sheet || state.view !== 'today')){ history.pushState({ dn:1 }, ''); guarded = true; } }
+  function unguard(){ if (NATIVE) return; if (guarded && !state.sheet && state.view === 'today'){ guarded = false; skipPop = true; history.back(); } }
+  /* The Android app's back button asks the page first: close the open page, then go to Today, then leave. */
+  window.__dnBack = function(){
+    if (state.sheet){ closeSheet(true); return true; }
+    if (state.view !== 'today'){ state.view = 'today'; state.q = ''; render(true); return true; }
+    return false;
+  };
   window.addEventListener('popstate', function(){
     if (skipPop){ skipPop = false; return; }
     guarded = false;

@@ -54,9 +54,9 @@ ws.onmessage = (ev) => {
   if (m.method === 'Runtime.exceptionThrown') errors.push((m.params.exceptionDetails.exception || {}).description || m.params.exceptionDetails.text);
   if (m.method === 'Runtime.consoleAPICalled' && m.params.type === 'error') errors.push('console: ' + m.params.args.map((a) => a.value).join(' '));
 };
-const send = (method, params = {}) => new Promise((resolve) => { const i = ++id; pending.set(i, resolve); ws.send(JSON.stringify({ id: i, method, params })); });
-const js = async (expression) => { const r = await send('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true }); return r.result && r.result.result ? r.result.result.value : undefined; };
-const click = async (selector, wait = 1200) => { const ok = await js(`(function(){ var e = document.querySelector(${JSON.stringify(selector)}); if (e) e.click(); return !!e; })()`); log('click', selector, ok ? 'ok' : 'NOT FOUND'); await sleep(wait); return ok; };
+const send = (method, params = {}) => new Promise((resolve) => { const i = ++id; pending.set(i, resolve); ws.send(JSON.stringify({ id: i, method, params })); setTimeout(() => { if (pending.has(i)) { pending.delete(i); resolve({ timeout: true }); } }, 10000); });
+const js = async (expression, gesture = false) => { const r = await send('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true, userGesture: gesture }); return r.result && r.result.result ? r.result.result.value : undefined; };
+const click = async (selector, wait = 1200) => { const ok = await js(`(function(){ var e = document.querySelector(${JSON.stringify(selector)}); if (e) e.click(); return !!e; })()`, true); log('click', selector, ok ? 'ok' : 'NOT FOUND'); await sleep(wait); return ok; };
 await send('Runtime.enable');
 
 await js(`(function(){ localStorage.setItem('dn-office-phone-v1', JSON.stringify(Object.assign({ v:1, meta:{ lastBackup:'' } }, ${JSON.stringify(sample)}))); location.reload(); return true; })()`);
@@ -70,7 +70,7 @@ await click('.fab', 1500);
 log('sheet open after +:', await js(`document.getElementById('sheet').open`));
 shot('screen-2-new-menu');
 await back();
-log('sheet open after back:', await js(`document.getElementById('sheet').open`), '| top:', top());
+log('sheet open after back:', await js(`document.getElementById('sheet').open`), '| title:', await js(`document.getElementById('title').textContent`), '| top:', top());
 shot('screen-3-after-back');
 
 await click('.navbtn[data-view="jobs"]', 800);
@@ -94,6 +94,8 @@ log('after back: title', await js(`document.getElementById('title').textContent`
 await back();
 log('after back again: title', await js(`document.getElementById('title').textContent`));
 shot('screen-7-today-again');
+await back();
+log('back on Today leaves the app, top:', top());
 log('page errors:', JSON.stringify(errors));
 ws.close();
 process.exit(0);

@@ -63,13 +63,24 @@ public class MainActivity extends Activity {
         web.loadUrl(START);
     }
 
+    /** Back closes the open page inside the app first, then returns to Today, then leaves the app. */
     @Override
     public void onBackPressed() {
-        if (web != null && web.canGoBack()) {
-            web.goBack();
-        } else {
+        if (web == null) {
             super.onBackPressed();
+            return;
         }
+        web.evaluateJavascript("(function(){try{return !!(window.__dnBack&&window.__dnBack());}catch(e){return false;}})()",
+            new ValueCallback<String>() {
+                @Override
+                public void onReceiveValue(String handled) {
+                    if (!"true".equals(handled)) leaveApp();
+                }
+            });
+    }
+
+    void leaveApp() {
+        super.onBackPressed();
     }
 
     @Override
