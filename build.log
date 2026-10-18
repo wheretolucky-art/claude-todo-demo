@@ -1,0 +1,63 @@
+build-tools: /usr/local/lib/android/sdk/build-tools/37.0.0
+platform:    /usr/local/lib/android/sdk/platforms/android-37.2
+version:     1.0.3 (3)
+openjdk version "17.0.20.1" 2026-08-18
+OpenJDK Runtime Environment Temurin-17.0.20.1+1 (build 17.0.20.1+1)
+OpenJDK 64-Bit Server VM Temurin-17.0.20.1+1 (build 17.0.20.1+1, mixed mode, sharing)
+== 1. Web app into assets
+total 520
+drwxr-xr-x 2 runner runner   4096 Oct 18 18:11 .
+drwxr-xr-x 3 runner runner   4096 Oct 18 18:11 ..
+-rw-r--r-- 1 runner runner  12024 Oct 18 18:11 icon-192.png
+-rw-r--r-- 1 runner runner  33818 Oct 18 18:11 icon-512.png
+-rw-r--r-- 1 runner runner 105437 Oct 18 18:11 index.html
+-rw-r--r-- 1 runner runner 364463 Oct 18 18:11 jspdf.umd.min.js
+-rw-r--r-- 1 runner runner    983 Oct 18 18:11 manifest.webmanifest
+== 2. Resources and manifest
+== 3. Code
+Note: src/com/debugnetworks/office/MainActivity.java uses or overrides a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+== 4. Package and align
+== 5. Debuggable, test-signed copy for the emulator check, and the signing tool
+Generating 2,048 bit RSA key pair and self-signed certificate (SHA256withRSA) with a validity of 365 days
+	for: CN=DN Office test
+Verifies
+Verified using v1 scheme (JAR signing): true
+Verified using v2 scheme (APK Signature Scheme v2): true
+Verified using v3 scheme (APK Signature Scheme v3): true
+Verified using v3.1 scheme (APK Signature Scheme v3.1): false
+Verified using v3.2 scheme (APK Signature Scheme v3.2): false
+Verified using v4 scheme (APK Signature Scheme v4): false
+Verified for SourceStamp: false
+Number of signers: 1
+package: name='com.debugnetworks.office' versionCode='3' versionName='1.0.3' platformBuildVersionName='17' platformBuildVersionCode='37' compileSdkVersion='37' compileSdkVersionCodename='17'
+minSdkVersion:'23'
+targetSdkVersion:'34'
+uses-permission: name='android.permission.INTERNET'
+application-label:'DN Office'
+application-icon-160:'res/mipmap-anydpi-v26/ic_launcher.xml'
+application-icon-240:'res/mipmap-anydpi-v26/ic_launcher.xml'
+application-icon-320:'res/mipmap-anydpi-v26/ic_launcher.xml'
+application-icon-480:'res/mipmap-anydpi-v26/ic_launcher.xml'
+application-icon-640:'res/mipmap-anydpi-v26/ic_launcher.xml'
+application-icon-65534:'res/mipmap-anydpi-v26/ic_launcher.xml'
+application: label='DN Office' icon='res/mipmap-anydpi-v26/ic_launcher.xml'
+application-debuggable
+launchable-activity: name='com.debugnetworks.office.MainActivity'  label='' icon=''
+feature-group: label=''
+  uses-feature: name='android.hardware.faketouch'
+  uses-implied-feature: name='android.hardware.faketouch' reason='default feature for all apps'
+main
+supports-screens: 'small' 'normal' 'large' 'xlarge'
+supports-any-density: 'true'
+locales: '--_--'
+densities: '160' '240' '320' '480' '640' '65534'
+total 1740
+drwxr-xr-x 2 runner runner    4096 Oct 18 18:12 .
+drwxr-xr-x 6 runner runner    4096 Oct 18 18:11 ..
+-rwxr-xr-x 1 runner runner 1181416 Oct 18 18:12 apksigner.jar
+-rw-r--r-- 1 runner runner    2789 Oct 18 18:12 build.log
+-rw-r--r-- 1 runner runner  292516 Oct 18 18:12 dn-office-test.apk
+-rw-r--r-- 1 runner runner    5493 Oct 18 18:12 dn-office-test.apk.idsig
+-rw-r--r-- 1 runner runner  281473 Oct 18 18:12 dn-office-unsigned.apk
+BUILD OK

@@ -1,0 +1,52 @@
+== install
+Serving...
+All files should be loaded. Notifying the device.
+Performing Incremental Install
+Success
+Install command complete in 3050 ms
+Starting: Intent { cmp=com.debugnetworks.office/.MainActivity }
+Status: ok
+LaunchState: COLD
+Activity: com.debugnetworks.office/.MainActivity
+TotalTime: 4693
+WaitTime: 4719
+Complete
+driving https://appassets.androidplatform.net/www/index.html
+native bridge present: true | jsPDF bundled: true
+today tiles: Money to collect
+₹13,900
+1 job
+Work to do
+0
+confirmed or started
+Quotes waiting
+0
+₹0
+Follow-ups due
+0
+today or overdue
+screenshot screen-1-today
+click .fab ok
+sheet open after +: true
+screenshot screen-2-new-menu
+sheet open after back: false | title: Today | top: ResumedActivity=ActivityRecord{b331883 u0 com.debugnetworks.office/.MainActivity t8}
+screenshot screen-3-after-back
+click .navbtn[data-view="jobs"] ok
+click .chip[data-jobs-tab="all"] ok
+click [data-act="job"][data-id="j_sample"] ok
+screenshot screen-4-job
+click #sheet [data-act="card"] ok
+after sharing the CCTV card, top: ResumedActivity=ActivityRecord{e4f406d u0 com.android.intentresolver/.ChooserActivity t8}
+screenshot screen-5-share-card
+back in app after share sheet: ResumedActivity=ActivityRecord{b331883 u0 com.debugnetworks.office/.MainActivity t8}
+click #sheet [data-act="edit-quote"] ok
+click [data-act="q-pdf"] ok
+after sharing the quote PDF, top: ResumedActivity=ActivityRecord{baf60f9 u0 com.android.intentresolver/.ChooserActivity t8}
+screenshot screen-6-share-pdf
+after back: title Jobs | sheet open false
+after back again: title Today
+screenshot screen-7-today-again
+back on Today leaves the app, top: ResumedActivity=ActivityRecord{395fdf2 u0 com.google.android.apps.nexuslauncher/.NexusLauncherActivity t7}
+page errors: []
+3097
+app still running
