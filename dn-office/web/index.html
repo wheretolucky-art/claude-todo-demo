@@ -1,0 +1,1095 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0A1F44">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="Clients, jobs, quotes and payments for Debug Networks, Hazaribagh.">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="DN Office">
+<title>DN Office</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600&amp;family=Sora:wght@400;600;700;800&amp;display=swap">
+<style>
+/* Layout: a phone app for one person running a CCTV business. A navy app bar names the section,
+   a bottom menu switches between Today, Jobs, Clients, Goal and Settings, and a honey + button
+   starts a quote, job or client. Records, quotes and payments open as full-screen pages. */
+:root{
+  --bg:#F2F4F8; --surface:#FFFFFF; --surface-2:#F5F7FA; --line:#D8DEE9; --grid:#E6EAF1;
+  --fg:#0A1F44; --muted:#55647D; --accent:#F5B400; --accent-soft:#FDF0D5; --track:#FBE7A6;
+  --primary:#0A1F44; --on-primary:#FFFFFF; --danger:#B3261E; --focus:#2456D6; --link:#2148A8;
+  --bar:#0A1F44; --on-bar:#FFFFFF; --on-bar-muted:#C9D6EA; --go:#1FB96C; --on-go:#04210F;
+  --gray-bg:#EBEEF4; --gray-fg:#46546B; --blue-bg:#E3ECFF; --blue-fg:#2148A8;
+  --amber-bg:#FDF0D5; --amber-fg:#8A5200; --green-bg:#E3F4EA; --green-fg:#1E7F4F;
+  --red-bg:#FBE4E2; --red-fg:#A52A1F; --scrim:rgba(10,31,68,.45); --shadow:rgba(10,31,68,.22);
+  --font-display:'Sora',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --font-data:'JetBrains Mono',ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#07111F; --surface:#0E1C33; --surface-2:#132544; --line:#2A426D; --grid:#1D3156;
+    --fg:#EAF0FA; --muted:#A6B6D0; --accent-soft:#3A2E12; --track:#3D3418; --primary:#F5B400; --on-primary:#0A1F44;
+    --danger:#FF8A80; --focus:#9DBBFF; --link:#9DBBFF; --bar:#0B1830; --go:#2BD785; --on-go:#04210F;
+    --gray-bg:#1C2D4D; --gray-fg:#C3CFE3; --blue-bg:#16305E; --blue-fg:#A9C4FF;
+    --amber-bg:#3A2E12; --amber-fg:#F5C451; --green-bg:#12342A; --green-fg:#5AD69A;
+    --red-bg:#3E1C1A; --red-fg:#FF9C93; --scrim:rgba(0,0,0,.6); --shadow:rgba(0,0,0,.5);
+    color-scheme:dark;
+  }
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font-display);font-size:15px;line-height:1.45;-webkit-tap-highlight-color:transparent;overscroll-behavior-y:contain}
+h1,h2,h3,p{margin:0}
+h1,h2{text-wrap:balance}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.num{font-family:var(--font-data);font-variant-numeric:tabular-nums}
+a{color:var(--link)}
+[hidden]{display:none !important}
+
+.appbar{position:sticky;top:0;z-index:20;background:var(--bar);color:var(--on-bar);display:flex;align-items:center;gap:12px;
+  padding:calc(env(safe-area-inset-top, 0px) + 10px) max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px))}
+.mark{flex:0 0 38px;width:38px;height:38px;border-radius:10px;background:#FFFFFF;display:grid;place-items:center}
+.appbar-t{display:flex;flex-direction:column;min-width:0}
+.appbar h1{font-size:19px;font-weight:800;letter-spacing:-.3px;line-height:1.2}
+.appbar small{font-size:12px;color:var(--on-bar-muted)}
+
+main{max-width:760px;margin-inline:auto;display:flex;flex-direction:column;gap:14px;
+  padding:16px max(16px, env(safe-area-inset-right, 0px)) calc(112px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px))}
+
+.bottomnav{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(5,minmax(0,1fr));
+  padding:6px max(6px, env(safe-area-inset-right, 0px)) calc(6px + env(safe-area-inset-bottom, 0px)) max(6px, env(safe-area-inset-left, 0px))}
+.navbtn{all:unset;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 0;font-size:11.5px;font-weight:600;color:var(--muted);text-align:center}
+.navbtn .ico{width:56px;height:30px;border-radius:15px;display:grid;place-items:center}
+.navbtn svg{width:23px;height:23px}
+.navbtn[aria-current="page"]{color:var(--fg)}
+.navbtn[aria-current="page"] .ico{background:var(--accent-soft)}
+.navbtn:focus-visible .ico{outline:2px solid var(--focus)}
+.fab{position:fixed;z-index:21;right:max(16px, env(safe-area-inset-right, 0px));bottom:calc(80px + env(safe-area-inset-bottom, 0px));width:58px;height:58px;border-radius:18px;border:0;
+  background:#F5B400;color:#0A1F44;box-shadow:0 6px 18px var(--shadow);display:grid;place-items:center;cursor:pointer}
+.fab svg{width:28px;height:28px}
+
+.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media (min-width:700px){ .tiles{grid-template-columns:repeat(4,minmax(0,1fr))} }
+.tile{all:unset;box-sizing:border-box;cursor:pointer;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.tile:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.tile[aria-pressed="true"]{border-color:var(--fg);box-shadow:inset 0 -4px 0 var(--accent)}
+.tile span:first-child{font-size:12.5px;color:var(--muted)}
+.tile strong{font-size:22px;font-weight:700;line-height:1.25;overflow-wrap:anywhere}
+.tile small{font-size:11.5px;color:var(--muted)}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.panel > h2{font-size:16px;font-weight:700}
+.banner{background:var(--accent-soft);border-radius:16px;padding:14px 16px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 14px}
+.banner > div{display:flex;flex-direction:column;gap:2px;flex:1 1 220px;min-width:0}
+.banner span{font-size:13.5px}
+.goal-fig{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:8px}
+.goal-fig strong{font-size:34px;font-weight:800;letter-spacing:-1px;line-height:1}
+.meter{position:relative;height:12px;border-radius:999px;background:var(--track)}
+.meter-fill{height:100%;border-radius:999px;background:var(--accent)}
+.meter-tick{position:absolute;top:-4px;width:2px;height:20px;background:var(--fg);border-radius:1px}
+.stat-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.stat{background:var(--surface-2);border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.stat span{font-size:11.5px;color:var(--muted)}.stat strong{font-size:15px;overflow-wrap:anywhere}
+
+.list{display:flex;flex-direction:column;gap:10px}
+.section-h{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.item{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.item-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.item-main{min-width:0;display:flex;flex-direction:column;gap:4px}
+.item-title{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px}
+.linkish{all:unset;cursor:pointer;font-weight:700;font-size:16px;overflow-wrap:anywhere}
+.linkish:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.meta{font-size:13px;color:var(--muted);overflow-wrap:anywhere}
+.money{display:flex;flex-direction:column;align-items:flex-end;gap:1px;flex:0 0 auto;text-align:right}
+.money strong{font-size:17px}
+.money span{font-size:11.5px;color:var(--muted)}
+.acts{display:flex;flex-wrap:wrap;gap:8px}
+.empty{font-size:14px;color:var(--muted);border:1px dashed var(--line);border-radius:16px;padding:18px;background:var(--surface)}
+.pill{display:inline-flex;align-items:center;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:700;white-space:nowrap}
+.p-gray{background:var(--gray-bg);color:var(--gray-fg)}.p-blue{background:var(--blue-bg);color:var(--blue-fg)}
+.p-amber{background:var(--amber-bg);color:var(--amber-fg)}.p-green{background:var(--green-bg);color:var(--green-fg)}
+.p-red{background:var(--red-bg);color:var(--red-fg)}
+
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:8px 13px;min-height:42px;cursor:pointer;font-weight:600;font-size:14px;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;color:var(--fg)}
+.btn-primary{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
+.btn-go{background:var(--go);color:var(--on-go);border-color:var(--go)}
+.btn-danger{color:var(--danger)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn svg{width:18px;height:18px;flex:0 0 auto}
+.row-btns{display:flex;flex-wrap:wrap;gap:8px}
+.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 13px;min-height:36px;cursor:pointer;font-weight:600;font-size:13px;white-space:nowrap;flex:0 0 auto}
+.chip[aria-pressed="true"]{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
+
+input[type="text"],input[type="tel"],input[type="email"],input[type="number"],input[type="date"],input[type="search"],input[type="url"],select,textarea{width:100%;min-width:0;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:10px 11px;min-height:46px;font-size:16px}
+textarea{resize:vertical;line-height:1.5}
+input[type="number"]{font-family:var(--font-data);font-variant-numeric:tabular-nums}
+input[type="checkbox"]{width:20px;height:20px;accent-color:var(--primary);flex:0 0 auto;margin:1px 0 0}
+.check{display:flex;gap:10px;align-items:flex-start;font-size:14px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.f{display:flex;flex-direction:column;gap:4px;min-width:0}
+.f.wide{grid-column:1 / -1}
+.f > span{font-size:12px;font-weight:600;color:var(--muted)}
+@media (max-width:420px){ .grid{grid-template-columns:minmax(0,1fr)} .grid .half{grid-column:auto} }
+.hint{font-size:13px;color:var(--muted)}
+.msg{font-size:13px;color:var(--danger)}
+table.t{width:100%;border-collapse:collapse;font-size:14px}
+table.t th{text-align:left;font-size:12px;font-weight:600;color:var(--muted);padding:6px 8px;border-bottom:1px solid var(--line)}
+table.t td{padding:8px;border-bottom:1px solid var(--grid)}
+table.t .r{text-align:right}
+.kv{display:grid;grid-template-columns:minmax(0,112px) minmax(0,1fr);gap:6px 12px;font-size:14px;margin:0}
+.kv dt{color:var(--muted)}.kv dd{margin:0;overflow-wrap:anywhere}
+
+dialog.sheet{border:0;padding:0;margin:0;width:100%;max-width:100%;height:100%;max-height:100%;background:var(--bg);color:var(--fg);overflow-y:auto;overscroll-behavior:contain}
+dialog.sheet::backdrop{background:var(--scrim)}
+@media (min-width:760px){ dialog.sheet{width:min(640px,100%);margin:0 0 0 auto} }
+dialog.sheet.mini{top:auto;bottom:0;height:auto;max-height:90%;margin:0;border-radius:22px 22px 0 0;background:var(--surface)}
+@media (min-width:760px){ dialog.sheet.mini{width:min(460px,100%);bottom:24px;margin:0 auto;border-radius:22px} }
+.sheet-top{position:sticky;top:0;z-index:2;background:var(--surface);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:6px;
+  padding:calc(env(safe-area-inset-top, 0px) + 8px) max(12px, env(safe-area-inset-right, 0px)) 8px max(8px, env(safe-area-inset-left, 0px))}
+.sheet-top h2{font-size:18px;font-weight:800;letter-spacing:-.3px;overflow-wrap:anywhere;flex:1 1 auto}
+.mini .sheet-top{position:static;border-bottom:0;padding:16px 16px 4px}
+.iconbtn{all:unset;cursor:pointer;width:44px;height:44px;border-radius:12px;display:grid;place-items:center;flex:0 0 auto}
+.iconbtn svg{width:24px;height:24px}
+.iconbtn:focus-visible{outline:2px solid var(--focus)}
+.sheet-in{max-width:680px;margin-inline:auto;display:flex;flex-direction:column;gap:16px;
+  padding:16px max(16px, env(safe-area-inset-right, 0px)) calc(28px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px))}
+.sheet-actions{position:sticky;bottom:0;z-index:2;background:var(--surface);border-top:1px solid var(--line);display:flex;flex-wrap:wrap;gap:8px;
+  padding:10px max(16px, env(safe-area-inset-right, 0px)) calc(10px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px))}
+.sheet-actions .btn{flex:1 1 0;min-width:96px;padding-inline:8px}
+.bigopt{all:unset;box-sizing:border-box;cursor:pointer;display:flex;align-items:center;gap:14px;padding:14px;border-radius:14px;border:1px solid var(--line);background:var(--surface-2)}
+.bigopt b{display:block;font-size:16px}.bigopt span{font-size:13px;color:var(--muted)}
+.bigopt .dot{flex:0 0 42px;width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:var(--accent-soft)}
+.bigopt:focus-visible{outline:2px solid var(--focus)}
+.mini-list{display:flex;flex-direction:column;gap:6px}
+.mini-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 12px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.qitem{display:flex;flex-direction:column;gap:8px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.qnums{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;align-items:end}
+.qfoot{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.qfoot output{font-family:var(--font-data);font-weight:600}
+.rm{color:var(--danger)}
+.totals{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:4px}
+.totals div{display:flex;justify-content:space-between;gap:12px;font-size:14px}
+.totals div span:first-child{color:var(--muted)}
+.totals .grand{font-size:18px;font-weight:800;border-top:1px solid var(--line);padding-top:8px;margin-top:4px}
+.totals .grand span:first-child{color:var(--fg)}
+.pay-add{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;align-items:end}
+@media (max-width:420px){ .pay-add{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} .pay-add .f:last-child{grid-column:1 / -1} }
+.no-gst .gst-only{display:none !important}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(150px + env(safe-area-inset-bottom, 0px));z-index:40;background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:14px;max-width:calc(100% - 32px);text-align:center;box-shadow:0 4px 14px var(--shadow)}
+@media (prefers-reduced-motion: no-preference){ dialog.sheet[open]{animation:rise .18s ease-out} @keyframes rise{from{transform:translateY(18px);opacity:.6}to{transform:none;opacity:1}} }
+</style>
+</head>
+<body>
+<header class="appbar">
+  <span class="mark" id="mark" aria-hidden="true"></span>
+  <div class="appbar-t"><h1 id="title">Today</h1><small>Debug Networks</small></div>
+</header>
+<main id="view"><p class="empty">Opening your records…</p></main>
+<button class="fab" type="button" data-act="new" aria-label="New quote, job or client"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+<nav class="bottomnav" aria-label="Sections">
+  <button class="navbtn" type="button" data-view="today"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1z"/></svg></span>Today</button>
+  <button class="navbtn" type="button" data-view="jobs"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4.5" width="14" height="16" rx="2"/><path d="M9 4.5v-1h6v1M8.5 10h7M8.5 14h7M8.5 18h4"/></svg></span>Jobs</button>
+  <button class="navbtn" type="button" data-view="clients"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c.6-3.6 3.4-6 7-6s6.4 2.4 7 6"/></svg></span>Clients</button>
+  <button class="navbtn" type="button" data-view="goal"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18l5.5-5.5 4 3.5L20 9"/><path d="M15 9h5v5"/></svg></span>Goal</button>
+  <button class="navbtn" type="button" data-view="settings"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg></span>Settings</button>
+</nav>
+<dialog class="sheet" id="sheet" aria-labelledby="sheetTitle"><div id="sheetBody"></div></dialog>
+<input type="file" id="restoreFile" accept=".txt,.json,text/plain,application/json" hidden>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous" async></script>
+<script>
+(function(){
+  'use strict';
+  var $ = function(id){ return document.getElementById(id); };
+  var LS_KEY = 'dn-office-phone-v1', VERSION = '1.0';
+  var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var STATUSES = ['Enquiry','Quote sent','Confirmed','In progress','Done','Lost'];
+  var PILL = { 'Enquiry':'p-gray', 'Quote sent':'p-blue', 'Confirmed':'p-amber', 'In progress':'p-amber', 'Done':'p-green', 'Lost':'p-red' };
+  var RECEIVABLE = { 'Confirmed':1, 'In progress':1, 'Done':1 };
+  var TYPES = ['Shop','Home','School','Office','Clinic','Other'];
+  var MODES = ['Cash','UPI','Bank transfer','Cheque'];
+  var UNITS = ['Nos','Mtr','Box','Job','Set','Visit','Year'];
+  var TITLES = { today:'Today', jobs:'Jobs', clients:'Clients', goal:'₹ Goal', settings:'Settings' };
+  /* Your own rates, taken from your saved quotes. Change them in a quote as needed. */
+  var ITEMS = {
+    ipa:['IP camera (audio)','Nos',3200], ip2:['IP camera (two-way talk)','Nos',3900], ipo:['IP camera (audio, outdoor)','Nos',3300],
+    nvr:['NVR','Nos',6500], hdd:['Surveillance hard disk','Nos',6700], poe:['PoE switch','Nos',1800], cat6:['Cat6 cable','Mtr',35],
+    hd:['HD camera','Nos',1800], dvr:['DVR','Nos',5400], hdd5:['Surveillance hard disk 500 GB','Nos',3500], psu:['Power supply','Nos',800],
+    wire:['3+1 wire','Box',1400], inst:['Installation and configuration','Nos',500], check:['CCTV check-up','Visit',500]
+  };
+  var KITS = {
+    'HD Home Kit':[['hd',2],['dvr',1],['hdd5',1],['psu',1],['inst',2]],
+    'HD Shop Kit':[['hd',4],['dvr',1],['hdd5',1],['psu',1],['inst',4]],
+    'Smart IP Home Kit':[['ipa',2],['nvr',1],['hdd',1],['poe',1],['inst',2]],
+    'Smart IP Shop Kit':[['ipa',4],['nvr',1],['hdd',1],['poe',1],['inst',4]]
+  };
+  var DEFAULT_TERMS = ['50% advance with the order. Balance on completion of installation.','Product warranty is as per the manufacturer.','Cable, conduit and accessories are billed as per actual use.','Power point and internet connection are to be provided by the customer.','Prices are valid until the date shown above.'].join('\n');
+  var DEFAULT_SETTINGS = { biz:{ name:'Debug Networks', tagline:'We find it. We fix it.', phone:'91743 29045', email:'debugnetworks.hzb@gmail.com', address:'Hazaribagh, Jharkhand', gstin:'', gstRegistered:false, logo:'bee', upi:'6287349320@pthdfc', appLink:'https://claude.ai/artifact/PSbAz3aTJRYuPVwD4mqHN6' },
+    nextNo:23, goal:{ amount:100000, start:'2026-10-18', end:'2026-12-31' }, terms:DEFAULT_TERMS };
+
+  var state = { settings:clone(DEFAULT_SETTINGS), clients:[], jobs:[], meta:{ lastBackup:'' }, view:'today', jobsTab:'money', q:'', statusFilter:'', sheet:null, persisted:null };
+  var installEvt = null;
+  var NATIVE = window.DNAndroid || null; /* set when running inside the Android app */
+
+  /* ---------- helpers ---------- */
+  function clone(o){ return JSON.parse(JSON.stringify(o)); }
+  function num(v){ var n = parseFloat(v); return isFinite(n) ? n : 0; }
+  function pad(n){ return String(n).padStart(2, '0'); }
+  function round2(n){ return Math.round((n + Number.EPSILON) * 100) / 100; }
+  function rupees(n){ var r = Math.round(n); return (r < 0 ? '−₹' : '₹') + Math.abs(r).toLocaleString('en-IN'); }
+  function fmt2(n){ return Number(n).toLocaleString('en-IN', { minimumFractionDigits:2, maximumFractionDigits:2 }); }
+  function trimNum(v){ return String(+num(v).toFixed(3)); }
+  function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]; }); }
+  function today(){ var d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()); }
+  function dnum(iso){ var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || ''); return m ? Date.UTC(+m[1], +m[2]-1, +m[3]) / 864e5 : NaN; }
+  function isoOf(n){ var d = new Date(n * 864e5); return d.getUTCFullYear() + '-' + pad(d.getUTCMonth()+1) + '-' + pad(d.getUTCDate()); }
+  function fmtDate(iso){ var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || ''); return m ? (+m[3]) + ' ' + MONTHS[+m[2]-1] + ' ' + m[1] : ''; }
+  function short(n){ var d = new Date(n * 864e5); return d.getUTCDate() + ' ' + MONTHS[d.getUTCMonth()]; }
+  function addDays(iso, n){ return isoOf(dnum(iso) + n); }
+  function ago(iso){ var d = dnum(today()) - dnum(iso); if (!isFinite(d)) return ''; return d <= 0 ? 'today' : d === 1 ? 'yesterday' : d + ' days ago'; }
+  function uid(p){ return p + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+  function formatNo(n){ return 'DN-' + String(n).padStart(4, '0'); }
+  function paidOf(j){ return (j.payments || []).reduce(function(s, p){ return s + num(p.amount); }, 0); }
+  function dueOf(j){ return Math.max(0, num(j.amount) - paidOf(j)); }
+  function clientOf(j){ return state.clients.find(function(c){ return c.id === j.clientId; }) || { id:'', name:'Unknown client', phone:'', area:'' }; }
+  function biz(){ return state.settings.biz; }
+  function intl(phone){ var d = String(phone || '').replace(/\D/g, ''); if (!d) return ''; if (d.length === 10) return '91' + d; if (d.length === 11 && d[0] === '0') return '91' + d.slice(1); return d; }
+  function waLink(phone, text){ var d = intl(phone); return d ? 'https://wa.me/' + d + (text ? '?text=' + encodeURIComponent(text) : '') : ''; }
+  function telLink(phone){ var d = intl(phone); return d ? 'tel:+' + d : ''; }
+  var timers = {};
+  function toast(msg){ var t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(timers.t); timers.t = setTimeout(function(){ t.hidden = true; }, 3600); }
+  function armed(btn, label, fn){
+    if (btn.dataset.armed){ delete btn.dataset.armed; fn(); return; }
+    var old = btn.textContent; btn.dataset.armed = '1'; btn.textContent = label;
+    setTimeout(function(){ if (btn.isConnected && btn.dataset.armed){ delete btn.dataset.armed; btn.textContent = old; } }, 4000);
+  }
+  var ICON = {
+    call:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6.6 3.5h2.6l1.4 4.1-2 1.4a12 12 0 0 0 6.4 6.4l1.4-2 4.1 1.4v2.6a2 2 0 0 1-2.2 2A16.5 16.5 0 0 1 4.6 5.7a2 2 0 0 1 2-2.2z"/></svg>',
+    chat:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.2 3.6c-.5.4-1.3.1-1.3-.6V16A2.5 2.5 0 0 1 4 13.5z"/></svg>',
+    share:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4M8 8l4-4 4 4M5 13v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></svg>',
+    back:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>'
+  };
+  function callBtn(phone){ var t = telLink(phone); return t ? '<a class="btn" href="' + t + '">' + ICON.call + 'Call</a>' : ''; }
+  function waBtn(phone, text, label, cls){ var w = waLink(phone, text); return w ? '<a class="btn ' + (cls || '') + '" href="' + esc(w) + '" target="_blank" rel="noopener">' + ICON.chat + esc(label) + '</a>' : ''; }
+
+  /* ---------- storage on this phone ---------- */
+  function applyData(d){
+    var s = d.settings || {};
+    state.settings = Object.assign(clone(DEFAULT_SETTINGS), s, { biz:Object.assign({}, DEFAULT_SETTINGS.biz, s.biz || {}), goal:Object.assign({}, DEFAULT_SETTINGS.goal, s.goal || {}) });
+    state.clients = (d.clients || []).filter(function(c){ return c && c.id; });
+    state.jobs = (d.jobs || []).filter(function(j){ return j && j.id; }).map(function(j){ j.payments = j.payments || []; return j; });
+    state.meta = Object.assign({ lastBackup:'' }, d.meta || {});
+  }
+  function load(){ var d = null; try { d = JSON.parse(localStorage.getItem(LS_KEY) || 'null'); } catch(e){} if (d) applyData(d); }
+  function persist(){
+    try { localStorage.setItem(LS_KEY, JSON.stringify({ v:1, settings:state.settings, clients:state.clients, jobs:state.jobs, meta:state.meta })); return true; }
+    catch(e){ toast('Could not save on this phone. Free up some space, then try again.'); return false; }
+  }
+  function putClient(c){ state.clients = state.clients.filter(function(x){ return x.id !== c.id; }).concat([c]); return persist(); }
+  function putJob(j){ state.jobs = state.jobs.filter(function(x){ return x.id !== j.id; }).concat([j]); return persist(); }
+  function removeJob(id){ state.jobs = state.jobs.filter(function(x){ return x.id !== id; }); return persist(); }
+  function removeClient(id){ state.jobs = state.jobs.filter(function(j){ return j.clientId !== id; }); state.clients = state.clients.filter(function(x){ return x.id !== id; }); return persist(); }
+
+  /* ---------- quote money ---------- */
+  function calcQuote(q){
+    var gstOn = q && q.withGst != null ? !!q.withGst : !!biz().gstRegistered;
+    var lines = (q.items || []).map(function(it){ return Object.assign({}, it, { amount:round2(num(it.qty) * num(it.rate)) }); });
+    var subtotal = round2(lines.reduce(function(s, l){ return s + l.amount; }, 0));
+    var discount = round2(Math.min(Math.max(num(q.discount), 0), subtotal));
+    var factor = subtotal > 0 ? (subtotal - discount) / subtotal : 0;
+    var tax = 0, rates = {};
+    if (gstOn) lines.forEach(function(l){ if (l.amount > 0){ tax += l.amount * factor * num(l.gst) / 100; rates[num(l.gst)] = 1; } });
+    tax = round2(tax);
+    var taxable = round2(subtotal - discount), exact = round2(taxable + tax), total = Math.round(exact), keys = Object.keys(rates), cgst = round2(tax / 2);
+    return { gstOn:gstOn, lines:lines, subtotal:subtotal, discount:discount, taxable:taxable, tax:tax, cgst:cgst, sgst:round2(tax - cgst), total:total, roundOff:round2(total - exact), uniformRate:keys.length === 1 ? +keys[0] : null };
+  }
+  function totalRows(c, q){
+    var rows = [['Subtotal', fmt2(c.subtotal)]];
+    if (c.discount) rows.push(['Discount', '- ' + fmt2(c.discount)]);
+    if (c.gstOn){
+      if (c.discount) rows.push(['Taxable value', fmt2(c.taxable)]);
+      var r = c.uniformRate;
+      if (q.interstate) rows.push(['IGST' + (r != null ? ' ' + r + '%' : ''), fmt2(c.tax)]);
+      else { var h = r != null ? ' ' + (r/2) + '%' : ''; rows.push(['CGST' + h, fmt2(c.cgst)], ['SGST' + h, fmt2(c.sgst)]); }
+    }
+    if (c.roundOff) rows.push(['Round off', (c.roundOff > 0 ? '+ ' : '- ') + fmt2(Math.abs(c.roundOff))]);
+    return rows;
+  }
+  function printable(c){ return c.lines.filter(function(l){ return String(l.desc || '').trim() || l.amount; }); }
+  function inWords(n){
+    n = Math.floor(n); if (n === 0) return 'Zero';
+    var ones = ['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
+    var tens = ['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
+    var two = function(x){ return x < 20 ? ones[x] : tens[Math.floor(x/10)] + (x%10 ? ' ' + ones[x%10] : ''); };
+    var three = function(x){ return (x >= 100 ? ones[Math.floor(x/100)] + ' Hundred' + (x%100 ? ' ' : '') : '') + (x%100 ? two(x%100) : ''); };
+    var out = [], crore = Math.floor(n/1e7); n %= 1e7; var lakh = Math.floor(n/1e5); n %= 1e5; var th = Math.floor(n/1000); n %= 1000;
+    if (crore) out.push(inWords(crore) + ' Crore'); if (lakh) out.push(two(lakh) + ' Lakh'); if (th) out.push(two(th) + ' Thousand'); if (n) out.push(three(n));
+    return out.join(' ');
+  }
+
+  /* ---------- goal ---------- */
+  function goalCalc(){
+    var g = state.settings.goal || DEFAULT_SETTINGS.goal, goal = Math.max(1, num(g.amount));
+    var S = dnum(g.start), E = dnum(g.end);
+    if (!isFinite(S) || !isFinite(E) || E < S){ S = dnum(DEFAULT_SETTINGS.goal.start); E = dnum(DEFAULT_SETTINGS.goal.end); }
+    var total = E - S + 1, nW = Math.ceil(total / 7), weeks = [], profit = 0, received = 0;
+    for (var i = 0; i < nW; i++) weeks.push({ from:S + 7*i, to:Math.min(S + 7*i + 6, E), profit:0, received:0 });
+    state.jobs.forEach(function(j){
+      var amt = num(j.amount), cost = num(j.cost);
+      (j.payments || []).forEach(function(p){
+        var d = dnum(p.date); if (!(d >= S && d <= E)) return;
+        var share = amt > 0 ? cost * num(p.amount) / amt : 0, pr = num(p.amount) - share;
+        profit += pr; received += num(p.amount);
+        var w = weeks[Math.floor((d - S) / 7)]; w.profit += pr; w.received += num(p.amount);
+      });
+    });
+    var ti = dnum(today()) - S, elapsed = Math.min(Math.max(ti, 0), total), expected = goal * elapsed / total;
+    var daysLeft = Math.min(Math.max(total - ti, 0), total), remaining = Math.max(0, goal - profit);
+    return { goal:goal, S:S, E:E, total:total, weeks:weeks, profit:profit, received:received, expected:expected, daysLeft:daysLeft, remaining:remaining, ti:ti,
+      perWeek:daysLeft >= 7 ? remaining / (daysLeft / 7) : remaining, curWeek:(ti >= 0 && ti < total) ? Math.floor(ti / 7) : -1 };
+  }
+  function goalStatus(g){
+    var diff = g.profit - g.expected;
+    if (g.profit >= g.goal) return ['p-green', 'Goal reached'];
+    if (g.ti < 0) return ['p-gray', 'Starts ' + fmtDate(isoOf(g.S))];
+    if (g.ti >= g.total) return ['p-red', 'Ended ' + rupees(g.remaining) + ' short'];
+    return diff >= 0 ? ['p-green', diff >= 1 ? 'Ahead by ' + rupees(diff) : 'On track'] : ['p-amber', 'Behind by ' + rupees(-diff)];
+  }
+
+  /* ---------- logos ---------- */
+  function tag(name, attrs, inner){ return '<' + name + ' ' + Object.keys(attrs).map(function(k){ return k + '="' + attrs[k] + '"'; }).join(' ') + '>' + (inner || '') + '</' + name + '>'; }
+  function logoSvg(kind, size){
+    var navy = '#0A1F44', body = '';
+    if (kind === 'd'){
+      var line = function(x1,y1,x2,y2){ return tag('line', { x1:x1, y1:y1, x2:x2, y2:y2, stroke:navy, 'stroke-width':10, 'stroke-linecap':'round' }); };
+      body += tag('polygon', { points:'48,28 108,28 160,68 160,132 108,172 48,172', fill:'none', stroke:navy, 'stroke-width':10, 'stroke-linejoin':'round' });
+      body += line(48,100,104,100) + line(104,100,160,68) + line(104,100,160,132);
+      [[48,28],[108,28],[160,68],[160,132],[108,172],[48,172],[48,100]].forEach(function(p){ body += tag('circle', { cx:p[0], cy:p[1], r:13, fill:navy, stroke:'#FFFFFF', 'stroke-width':5 }); });
+      body += tag('circle', { cx:104, cy:100, r:25, fill:'#21D07A', stroke:'#FFFFFF', 'stroke-width':5 });
+      body += tag('path', { d:'M93 101 L101 109 L116 93', fill:'none', stroke:navy, 'stroke-width':7.2, 'stroke-linecap':'round', 'stroke-linejoin':'round' });
+      return tag('svg', { xmlns:'http://www.w3.org/2000/svg', width:size, height:size, viewBox:'0 0 200 200' }, body);
+    }
+    var y = '#F5B400';
+    body += tag('polygon', { points:'50,6 88.1,28 88.1,72 50,94 11.9,72 11.9,28', fill:y, stroke:navy, 'stroke-width':4.5, 'stroke-linejoin':'round' });
+    body += tag('ellipse', { cx:37, cy:43, rx:10, ry:7, transform:'rotate(-35 37 43)', fill:'#FFFFFF', stroke:navy, 'stroke-width':3 });
+    body += tag('ellipse', { cx:63, cy:43, rx:10, ry:7, transform:'rotate(35 63 43)', fill:'#FFFFFF', stroke:navy, 'stroke-width':3 });
+    body += tag('path', { d:'M47 29 Q44 23 40 20', fill:'none', stroke:navy, 'stroke-width':2.6, 'stroke-linecap':'round' });
+    body += tag('path', { d:'M53 29 Q56 23 60 20', fill:'none', stroke:navy, 'stroke-width':2.6, 'stroke-linecap':'round' });
+    body += tag('circle', { cx:40, cy:20, r:3.2, fill:navy }) + tag('circle', { cx:60, cy:20, r:3.2, fill:navy });
+    body += tag('circle', { cx:50, cy:34.5, r:7, fill:navy }) + tag('ellipse', { cx:50, cy:56, rx:11, ry:16, fill:navy });
+    body += tag('path', { d:'M47 71 L50 77.5 L53 71 Z', fill:navy, stroke:navy, 'stroke-width':1.5, 'stroke-linejoin':'round' });
+    [[42,50,58],[41.5,58,58.5],[44,66,56]].forEach(function(s){ body += tag('line', { x1:s[0], y1:s[1], x2:s[2], y2:s[1], stroke:y, 'stroke-width':3.6, 'stroke-linecap':'round' }); });
+    [[50,6],[88.1,28],[88.1,72],[50,94],[11.9,72],[11.9,28]].forEach(function(p){ body += tag('circle', { cx:p[0], cy:p[1], r:5, fill:navy, stroke:'#FFFFFF', 'stroke-width':2.2 }); });
+    return tag('svg', { xmlns:'http://www.w3.org/2000/svg', width:size, height:size, viewBox:'0 0 100 100' }, body);
+  }
+  var logoCache = {};
+  function logoImage(kind){
+    if (logoCache[kind]) return Promise.resolve(logoCache[kind]);
+    return new Promise(function(resolve){
+      var img = new Image();
+      img.onload = function(){ logoCache[kind] = img; resolve(img); };
+      img.onerror = function(){ resolve(null); };
+      img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(logoSvg(kind, 480));
+    });
+  }
+  async function logoPng(kind){
+    var img = await logoImage(kind); if (!img) return null;
+    try { var c = document.createElement('canvas'); c.width = c.height = 480; c.getContext('2d').drawImage(img, 0, 0, 480, 480); return c.toDataURL('image/png'); } catch(e){ return null; }
+  }
+
+  /* ---------- quote PDF ---------- */
+  function pdfSafe(s){ return String(s == null ? '' : s).replace(/₹/g, 'Rs. ').replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[–—−]/g, '-').replace(/[·•]/g, '-').replace(/×/g, 'x'); }
+  async function buildPdf(q, client){
+    var doc = new window.jspdf.jsPDF({ unit:'mm', format:'a4' });
+    var b = biz(), c = calcQuote(q), gst = c.gstOn;
+    var W = 210, H = 297, M = 15, R = W - M, CW = W - 2*M, BOTTOM = H - 22;
+    var navy = [10,31,68], soft = [85,100,125], rule = [211,218,230], white = [255,255,255];
+    var accent = b.logo === 'd' ? [33,208,122] : [245,180,0];
+    var font = function(style, size, col){ doc.setFont('helvetica', style); doc.setFontSize(size); doc.setTextColor(col[0], col[1], col[2]); };
+    var wrap = function(s, w){ return doc.splitTextToSize(pdfSafe(s), w); };
+    var T = function(s, x, y, o){ doc.text(pdfSafe(s), x, y, o || {}); };
+    var hr = function(y, x1, x2){ doc.setDrawColor(rule[0], rule[1], rule[2]); doc.setLineWidth(0.3); doc.line(x1 == null ? M : x1, y, x2 == null ? R : x2, y); };
+    doc.setFillColor(navy[0], navy[1], navy[2]); doc.rect(0, 0, W, 5, 'F');
+    doc.setFillColor(accent[0], accent[1], accent[2]); doc.rect(0, 5, W, 1.2, 'F');
+    var y = 16, x = M, logo = await logoPng(b.logo);
+    if (logo){ doc.addImage(logo, 'PNG', M, y - 2, 20, 20); x = M + 24; }
+    font('bold', 18, navy); T(b.name || 'Your business', x, y + 6);
+    if (b.tagline){ font('normal', 9.5, soft); T(b.tagline, x, y + 11.5); }
+    font('bold', 20, navy); T('QUOTATION', R, y + 6, { align:'right' });
+    font('normal', 9.5, soft);
+    T('No. ' + q.no, R, y + 11.5, { align:'right' });
+    T('Date: ' + fmtDate(q.date), R, y + 16, { align:'right' });
+    T('Valid until: ' + fmtDate(addDays(q.date, Math.round(num(q.validDays)))), R, y + 20.5, { align:'right' });
+    y += 27; hr(y); y += 7;
+    var colW = (CW - 10) / 2;
+    var party = function(title, lines, px){
+      font('bold', 8, soft); T(title, px, y); var py = y + 5.5;
+      lines.forEach(function(ln){ if (!ln[0]) return; font(ln[1] ? 'bold' : 'normal', ln[1] ? 11 : 9.5, ln[1] ? navy : soft); wrap(ln[0], colW).forEach(function(t){ doc.text(t, px, py); py += ln[1] ? 5.4 : 4.5; }); });
+      return py;
+    };
+    var y1 = party('FROM', [[b.name, 1], [b.address], [b.phone && 'Phone: ' + b.phone], [b.email], [gst && b.gstin && 'GSTIN: ' + b.gstin]], M);
+    var y2 = party('QUOTATION FOR', [[client.name, 1], [client.area], [client.phone && 'Phone: ' + client.phone]], M + colW + 10);
+    y = Math.max(y1, y2) + 3;
+    var fixed = 9 + 26 + 28 + (gst ? 16 : 0) + 32;
+    var cols = [['#', 9, 0], ['Description', CW - fixed, 0], ['Qty', 26, 1], ['Rate (Rs.)', 28, 1]];
+    if (gst) cols.push(['GST', 16, 1]);
+    cols.push(['Amount (Rs.)', 32, 1]);
+    var cell = function(text, i, yy){ var cx = M; for (var k = 0; k < i; k++) cx += cols[k][1]; if (cols[i][2]) doc.text(text, cx + cols[i][1] - 2, yy, { align:'right' }); else doc.text(text, cx + 2, yy); };
+    var head = function(){ doc.setFillColor(navy[0], navy[1], navy[2]); doc.rect(M, y, CW, 8, 'F'); font('bold', 8.5, white); cols.forEach(function(col, i){ cell(col[0], i, y + 5.3); }); y += 8; };
+    head();
+    var n = 0;
+    printable(c).forEach(function(l){
+      var dl = wrap(l.desc || '-', cols[1][1] - 4), h = Math.max(8, dl.length * 4.5 + 3.6);
+      if (y + h > BOTTOM){ doc.addPage(); y = M; head(); }
+      n += 1; font('normal', 9.5, navy); cell(String(n), 0, y + 5.3);
+      dl.forEach(function(t, i){ cell(t, 1, y + 5.3 + i * 4.5); });
+      var vals = [pdfSafe(trimNum(l.qty) + ' ' + l.unit), fmt2(num(l.rate))]; if (gst) vals.push(num(l.gst) + '%'); vals.push(fmt2(l.amount));
+      vals.forEach(function(v, i){ cell(v, i + 2, y + 5.3); });
+      hr(y + h); y += h;
+    });
+    var rows = totalRows(c, q);
+    if (y + rows.length * 6 + 34 > BOTTOM){ doc.addPage(); y = M; }
+    y += 4; var tx = R - 80;
+    rows.forEach(function(r){ font('normal', 9.5, soft); doc.text(r[0], tx, y + 4); font('normal', 9.5, navy); doc.text(r[1], R - 2, y + 4, { align:'right' }); y += 6; });
+    doc.setFillColor(navy[0], navy[1], navy[2]); doc.rect(tx - 2, y + 1, 82, 10, 'F');
+    font('bold', 11, white); doc.text('Total', tx + 1, y + 7.6); doc.text('Rs. ' + fmt2(c.total), R - 2, y + 7.6, { align:'right' });
+    y += 18; font('normal', 9, soft);
+    wrap('Amount in words: Rupees ' + inWords(c.total) + ' Only', CW).forEach(function(t){ doc.text(t, M, y); y += 4.5; });
+    var terms = String(q.terms || '').split('\n').map(function(s){ return s.trim(); }).filter(Boolean);
+    if (terms.length){
+      y += 5; if (y + 14 > BOTTOM){ doc.addPage(); y = M + 4; }
+      font('bold', 8, soft); doc.text('TERMS AND CONDITIONS', M, y); y += 5.5;
+      terms.forEach(function(t, i){ var ls = wrap((i + 1) + '. ' + t, CW); if (y + ls.length * 4.5 > BOTTOM){ doc.addPage(); y = M + 4; } font('normal', 9, navy); ls.forEach(function(s){ doc.text(s, M, y); y += 4.5; }); y += 0.8; });
+    }
+    if (b.upi){ y += 4; if (y + 8 > BOTTOM){ doc.addPage(); y = M + 4; } font('normal', 9, navy); T('Pay by UPI: ' + b.upi, M, y); y += 4.5; }
+    if (y + 32 > BOTTOM){ doc.addPage(); y = M; }
+    y += 12; font('normal', 9, soft); T('For ' + (b.name || ''), R, y, { align:'right' });
+    y += 17; hr(y, R - 55, R); y += 4.5; doc.text('Authorised signatory', R, y, { align:'right' });
+    var pages = doc.getNumberOfPages(), foot = [b.name, b.phone, b.email].filter(Boolean).join('  |  ');
+    for (var p = 1; p <= pages; p++){ doc.setPage(p); font('normal', 8, soft); T(foot, M, H - 10); doc.text('Page ' + p + ' of ' + pages, R, H - 10, { align:'right' }); }
+    return doc;
+  }
+  function quoteText(q, client){
+    var b = biz(), c = calcQuote(q), n = 0, out = [];
+    out.push('*Quotation ' + q.no + '* from ' + b.name);
+    out.push('Date: ' + fmtDate(q.date) + ' (valid until ' + fmtDate(addDays(q.date, Math.round(num(q.validDays)))) + ')');
+    out.push('For: ' + client.name, '');
+    printable(c).forEach(function(l){ n += 1; out.push(n + '. ' + l.desc + ' - ' + trimNum(l.qty) + ' ' + l.unit + ' x ₹' + fmt2(num(l.rate)) + ' = ₹' + fmt2(l.amount)); });
+    out.push('');
+    totalRows(c, q).forEach(function(r){ out.push(r[0] + ': ₹' + r[1].replace(/^([+-]) /, '$1')); });
+    out.push('*Total: ₹' + fmt2(c.total) + '*');
+    if (b.upi) out.push('', 'UPI: ' + b.upi);
+    if (b.phone) out.push(b.name + ' · ' + b.phone);
+    return out.join('\n');
+  }
+
+  /* ---------- CCTV card ---------- */
+  function cardLines(j){
+    var c = clientOf(j);
+    var items = j.quote ? printable(calcQuote(j.quote)).filter(function(l){ return !/install|cable|wire|visit/i.test(l.desc); }).map(function(l){ return trimNum(l.qty) + ' × ' + l.desc; }) : [];
+    if (!items.length) items = [j.title || 'CCTV system'];
+    return { name:c.name, area:c.area || '', installed:j.workDate ? fmtDate(j.workDate) : (j.date ? fmtDate(j.date) : ''), items:items,
+      warranty:j.warrantyUntil ? 'Until ' + fmtDate(j.warrantyUntil) : 'As per manufacturer', amc:j.amcUntil ? 'Until ' + fmtDate(j.amcUntil) : 'Not taken. Ask us for AMC.' };
+  }
+  function cardText(j){
+    var L = cardLines(j), b = biz();
+    return ['*CCTV card* · ' + b.name, 'Customer: ' + L.name + (L.area ? ', ' + L.area : ''), 'Installed on: ' + L.installed, 'What we installed:'].concat(L.items.map(function(s){ return '• ' + s; }))
+      .concat(['Warranty: ' + L.warranty, 'AMC: ' + L.amc, b.phone ? 'Help or service: WhatsApp ' + b.phone : '', b.appLink ? 'Report a problem: ' + b.appLink + '#problem' : '', b.upi ? 'UPI: ' + b.upi : '']).filter(Boolean).join('\n');
+  }
+  async function buildCard(j){
+    try { if (document.fonts && document.fonts.ready) await document.fonts.ready; } catch(e){}
+    var L = cardLines(j), b = biz(), W = 1080, H = 1350;
+    var cv = document.createElement('canvas'); cv.width = W; cv.height = H; var x = cv.getContext('2d');
+    var F = function(w, s){ return w + ' ' + s + 'px Sora, "Segoe UI", Roboto, sans-serif'; };
+    var wrapText = function(t, maxW){ var words = String(t).split(' '), lines = [], cur = ''; words.forEach(function(w){ var test = cur ? cur + ' ' + w : w; if (x.measureText(test).width > maxW && cur){ lines.push(cur); cur = w; } else cur = test; }); if (cur) lines.push(cur); return lines; };
+    x.fillStyle = '#FFFFFF'; x.fillRect(0, 0, W, H);
+    x.fillStyle = '#0A1F44'; x.fillRect(0, 0, W, 300);
+    x.fillStyle = b.logo === 'd' ? '#21D07A' : '#F5B400'; x.fillRect(0, 300, W, 12);
+    x.fillStyle = '#FFFFFF'; x.beginPath(); if (x.roundRect) x.roundRect(72, 72, 156, 156, 28); else x.rect(72, 72, 156, 156); x.fill();
+    var logo = await logoImage(b.logo); if (logo) x.drawImage(logo, 84, 84, 132, 132);
+    x.fillStyle = '#FFFFFF'; x.font = F(800, 58); x.fillText(b.name || 'Debug Networks', 264, 146);
+    x.fillStyle = '#C9D6EA'; x.font = F(600, 34); x.fillText('CCTV card', 264, 200);
+    var y = 392, lx = 72, vx = 360, maxV = W - vx - 72;
+    var row = function(label, value, bold){
+      x.fillStyle = '#55647D'; x.font = F(400, 30); x.fillText(label, lx, y);
+      x.fillStyle = '#0A1F44'; x.font = F(bold ? 700 : 400, 32);
+      var ls = wrapText(value, maxV); ls.forEach(function(t, i){ x.fillText(t, vx, y + i * 44); });
+      y += Math.max(1, ls.length) * 44 + 26;
+    };
+    row('Customer', L.name, true);
+    if (L.area) row('Site', L.area);
+    if (L.installed) row('Installed on', L.installed);
+    x.fillStyle = '#55647D'; x.font = F(400, 30); x.fillText('What we installed', lx, y); y += 50;
+    x.font = F(400, 32); x.fillStyle = '#0A1F44';
+    L.items.slice(0, 7).forEach(function(s){ wrapText(s, W - 2*lx - 40).forEach(function(t, i){ x.fillText((i ? '   ' : '•  ') + t, lx + 10, y); y += 44; }); });
+    y += 24;
+    x.strokeStyle = '#D8DEE9'; x.lineWidth = 2; x.beginPath(); x.moveTo(lx, y - 20); x.lineTo(W - lx, y - 20); x.stroke(); y += 20;
+    row('Warranty', L.warranty, true);
+    row('AMC', L.amc, true);
+    x.fillStyle = '#0A1F44'; x.fillRect(0, H - 220, W, 220);
+    x.fillStyle = '#C9D6EA'; x.font = F(400, 30); x.fillText('Need help or service? WhatsApp', lx, H - 150);
+    x.fillStyle = '#F5B400'; x.font = F(800, 52); x.fillText(b.phone || '[Add your number in Settings]', lx, H - 86);
+    if (b.upi){ x.fillStyle = '#C9D6EA'; x.font = F(400, 26); x.fillText('UPI: ' + b.upi, lx, H - 40); }
+    return new Promise(function(resolve){ cv.toBlob(function(bl){ resolve(bl); }, 'image/png'); });
+  }
+
+  /* ---------- sharing files and text ---------- */
+  function safeName(s){ return String(s || '').replace(/[^A-Za-z0-9_-]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 60) || 'customer'; }
+  function downloadBlob(blob, name){
+    var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 5000);
+    toast('Saved to your phone’s Downloads.');
+  }
+  function blobToBase64(blob){ return new Promise(function(resolve, reject){ var fr = new FileReader(); fr.onload = function(){ resolve(String(fr.result).split(',')[1] || ''); }; fr.onerror = reject; fr.readAsDataURL(blob); }); }
+  async function shareFile(blob, name, text){
+    if (NATIVE){
+      try { NATIVE.shareFile(await blobToBase64(blob), name, blob.type || 'application/octet-stream', text || ''); return true; }
+      catch(e){ toast('Could not share the file. Try again.'); return false; }
+    }
+    var file = null; try { file = new File([blob], name, { type:blob.type }); } catch(e){}
+    if (file && navigator.canShare && navigator.canShare({ files:[file] })){
+      try { await navigator.share({ files:[file], title:name, text:text || '' }); return true; }
+      catch(e){ if (e && e.name === 'AbortError') return false; }
+    }
+    downloadBlob(blob, name); return true;
+  }
+  function shareText(text){
+    if (NATIVE){ NATIVE.shareText(text); return; }
+    if (navigator.share){ navigator.share({ text:text }).catch(function(e){ if (!e || e.name !== 'AbortError') copy(text); }); }
+    else copy(text);
+  }
+  function copy(text){
+    if (NATIVE){ NATIVE.copyText(text); toast('Copied.'); return; }
+    try { navigator.clipboard.writeText(text).then(function(){ toast('Copied.'); }, function(){ openSheet({ mode:'copy', text:text }); }); }
+    catch(e){ openSheet({ mode:'copy', text:text }); }
+  }
+  function openWa(phone, text){ var w = waLink(phone, text); if (w){ if (NATIVE) NATIVE.openExternal(w); else window.open(w, '_blank', 'noopener'); return true; } copy(text); return false; }
+
+  /* ---------- messages ---------- */
+  function upiLine(){ return biz().upi ? ' UPI: ' + biz().upi + '.' : ''; }
+  function msgPayment(j){ var c = clientOf(j); return 'नमस्ते ' + c.name + ' जी, Debug Networks की तरफ़ से याद दिला रहे हैं: "' + j.title + '" का ' + rupees(dueOf(j)) + ' भुगतान बाकी है। आप UPI या कैश से दे सकते हैं।' + upiLine() + (biz().appLink ? ' QR से भुगतान: ' + biz().appLink + '#pay' : '') + ' धन्यवाद!'; }
+  function msgQuote(j){ var c = clientOf(j); return 'नमस्ते ' + c.name + ' जी, हमने आपको ' + (j.quoteNo ? 'कोटेशन ' + j.quoteNo + ' ' : 'कोटेशन ') + '(' + rupees(num(j.amount)) + ') भेजा था। कोई सवाल हो तो बताइए। आप तैयार हों तो हम काम की तारीख तय कर लेते हैं। – Debug Networks'; }
+  function msgAmc(j){ var c = clientOf(j); return 'नमस्ते ' + c.name + ' जी, आपके CCTV का AMC ' + fmtDate(j.amcUntil) + ' को खत्म हो रहा है। रिन्यू करने के लिए जवाब दें, ताकि आपके कैमरे और रिकॉर्डिंग ठीक चलते रहें। – Debug Networks'; }
+  function shareMsg(){ return 'Debug Networks, हज़ारीबाग: CCTV कैमरा, WiFi और नेटवर्क सर्विस। पैकेज और कीमत देखें, विज़िट बुक करें या UPI से भुगतान करें: ' + biz().appLink; }
+
+  /* ---------- backup ---------- */
+  function backupData(){ return { app:'debug-networks-office', version:1, exportedAt:new Date().toISOString(), settings:state.settings, clients:state.clients, jobs:state.jobs }; }
+  async function backupNow(){
+    var name = 'DN-Office-backup-' + today() + '.txt';
+    var blob = new Blob([JSON.stringify(backupData(), null, 1)], { type:'text/plain' });
+    var done = await shareFile(blob, name, 'Debug Networks backup, ' + fmtDate(today()) + '. Keep this file. Restore it in DN Office if you change phones.');
+    if (done){ state.meta.lastBackup = today(); persist(); render(true); }
+  }
+  function onRestoreFile(file){
+    if (!file) return;
+    var fr = new FileReader();
+    fr.onload = function(){
+      var d = null; try { d = JSON.parse(fr.result); } catch(e){}
+      if (!d || !Array.isArray(d.clients) || !Array.isArray(d.jobs)){ toast('That file is not a DN Office backup. Pick the backup .txt or .json file.'); return; }
+      openSheet({ mode:'restore', data:d });
+    };
+    fr.onerror = function(){ toast('Could not read that file. Try again.'); };
+    fr.readAsText(file);
+  }
+
+  /* ---------- lists ---------- */
+  function lists(){
+    var t = today(), in30 = addDays(t, 30);
+    var by = function(f){ return function(a, b){ return (a[f] || '9999').localeCompare(b[f] || '9999'); }; };
+    return {
+      money: state.jobs.filter(function(j){ return RECEIVABLE[j.status] && dueOf(j) > 0; }).sort(by('workDate')),
+      work: state.jobs.filter(function(j){ return j.status === 'Confirmed' || j.status === 'In progress'; }).sort(by('workDate')),
+      quotes: state.jobs.filter(function(j){ return j.status === 'Quote sent' || j.status === 'Enquiry'; }).sort(by('date')),
+      follow: state.jobs.filter(function(j){ return j.followUp && j.followUp <= t && j.status !== 'Lost'; }).sort(by('followUp')),
+      amc: state.jobs.filter(function(j){ return j.amcUntil && j.amcUntil <= in30 && j.status !== 'Lost'; }).sort(by('amcUntil'))
+    };
+  }
+  function jobItem(j, ctx){
+    var c = clientOf(j), due = dueOf(j), paid = paidOf(j), t = today(), id = esc(j.id);
+    var meta = [j.quoteNo, j.title, j.date ? fmtDate(j.date) : ''].filter(Boolean).map(esc).join(' · ');
+    var extra = '';
+    if (ctx === 'work') extra = j.workDate ? (j.workDate < t ? '<span class="pill p-red">Planned ' + fmtDate(j.workDate) + ', overdue</span>' : '<span class="pill p-gray">Planned ' + fmtDate(j.workDate) + '</span>') : '<span class="pill p-gray">No work date yet</span>';
+    if (ctx === 'quotes' && j.date) extra = '<span class="pill p-gray">Sent ' + ago(j.date) + '</span>';
+    if (ctx === 'follow') extra = '<span class="pill ' + (j.followUp < t ? 'p-red' : 'p-amber') + '">Follow up ' + (j.followUp < t ? 'since ' + fmtDate(j.followUp) : 'today') + '</span>';
+    if (ctx === 'amc') extra = '<span class="pill ' + (j.amcUntil < t ? 'p-red' : 'p-amber') + '">AMC ' + (j.amcUntil < t ? 'ended ' : 'ends ') + fmtDate(j.amcUntil) + '</span>';
+    var acts = [];
+    var msgAct = function(kind, label){ var txt = kind === 'pay' ? msgPayment(j) : kind === 'quote' ? msgQuote(j) : msgAmc(j); return waBtn(c.phone, txt, label, 'btn-go') || '<button class="btn" type="button" data-act="msg-' + kind + '" data-id="' + id + '">Copy message</button>'; };
+    if (ctx === 'money'){ acts.push('<button class="btn btn-primary" type="button" data-act="pay" data-id="' + id + '">Add payment</button>', msgAct('pay', 'Reminder')); }
+    else if (ctx === 'work'){ acts.push(j.status === 'Confirmed' ? '<button class="btn btn-primary" type="button" data-act="status" data-to="In progress" data-id="' + id + '">Start work</button>' : '<button class="btn btn-primary" type="button" data-act="status" data-to="Done" data-id="' + id + '">Mark done</button>', callBtn(c.phone)); }
+    else if (ctx === 'quotes'){ acts.push('<button class="btn btn-primary" type="button" data-act="status" data-to="Confirmed" data-id="' + id + '">Won</button>', '<button class="btn" type="button" data-act="status" data-to="Lost" data-id="' + id + '">Lost</button>', msgAct('quote', 'Follow up')); }
+    else if (ctx === 'follow'){ acts.push('<button class="btn btn-primary" type="button" data-act="followed" data-id="' + id + '">Done</button>'); if (RECEIVABLE[j.status] && due > 0) acts.push(msgAct('pay', 'Reminder')); else acts.push(msgAct('quote', 'Follow up')); }
+    else if (ctx === 'amc'){ acts.push(msgAct('amc', 'AMC reminder')); }
+    acts.push('<button class="btn" type="button" data-act="job" data-id="' + id + '">Open</button>');
+    var moneyLine = RECEIVABLE[j.status] ? rupees(paid) + ' paid' : (j.status === 'Lost' ? 'Not won' : 'Quote value');
+    return '<div class="item"><div class="item-top"><div class="item-main"><div class="item-title"><button class="linkish" type="button" data-act="client" data-id="' + esc(c.id) + '">' + esc(c.name) + '</button><span class="pill ' + (PILL[j.status] || 'p-gray') + '">' + esc(j.status) + '</span></div><span class="meta">' + meta + '</span>' + (extra ? '<div class="item-title">' + extra + '</div>' : '') + '</div>' +
+      '<div class="money"><strong class="num">' + rupees(ctx === 'money' ? due : num(j.amount)) + '</strong><span>' + (ctx === 'money' ? 'due of ' + rupees(num(j.amount)) : moneyLine) + '</span></div></div><div class="acts">' + acts.filter(Boolean).join('') + '</div></div>';
+  }
+  function matches(text){ var q = state.q.trim().toLowerCase(); return !q || String(text).toLowerCase().indexOf(q) >= 0; }
+
+  /* ---------- views ---------- */
+  function tilesHtml(L, pressed){
+    var money = L.money.reduce(function(s, j){ return s + dueOf(j); }, 0);
+    var qv = L.quotes.filter(function(j){ return j.status === 'Quote sent'; }).reduce(function(s, j){ return s + num(j.amount); }, 0);
+    var tile = function(tab, label, value, sub){ return '<button class="tile" type="button" data-jobs-tab="' + tab + '" aria-pressed="' + (pressed === tab ? 'true' : 'false') + '"><span>' + label + '</span><strong class="num">' + value + '</strong><small>' + sub + '</small></button>'; };
+    return '<section class="tiles" aria-label="Summary">' +
+      tile('money', 'Money to collect', rupees(money), L.money.length + (L.money.length === 1 ? ' job' : ' jobs')) +
+      tile('work', 'Work to do', String(L.work.length), 'confirmed or started') +
+      tile('quotes', 'Quotes waiting', String(L.quotes.length), rupees(qv)) +
+      tile('follow', 'Follow-ups due', String(L.follow.length + L.amc.length), L.amc.length ? L.amc.length + ' AMC ending' : 'today or overdue') + '</section>';
+  }
+  function goalCard(compact){
+    var g = goalCalc(), st = goalStatus(g), pct = Math.max(0, Math.min(100, g.profit / g.goal * 100));
+    return '<section class="panel" aria-label="Goal"><div class="goal-fig"><div style="display:flex;flex-direction:column;gap:4px"><span class="hint">Profit so far, of ' + rupees(g.goal) + ' by ' + short(g.E) + '</span><strong>' + rupees(g.profit) + '</strong></div><span class="pill ' + st[0] + '">' + esc(st[1]) + '</span></div>' +
+      '<div class="meter" role="img" aria-label="' + Math.floor(pct) + '% of the goal reached"><div class="meter-fill" style="width:' + pct + '%"></div><div class="meter-tick" style="left:calc(' + Math.min(100, g.expected / g.goal * 100) + '% - 1px)"></div></div>' +
+      '<div class="stat-row"><div class="stat"><span>Days left</span><strong class="num">' + g.daysLeft + '</strong></div><div class="stat"><span>Needed a week</span><strong class="num">' + rupees(g.perWeek) + '</strong></div><div class="stat"><span>Received</span><strong class="num">' + rupees(g.received) + '</strong></div></div>' +
+      (compact ? '' : '<p class="hint">Profit is each payment you receive, minus that payment’s share of the job’s product cost. Add the product cost on each job so this stays right. The dark mark on the bar shows where you should be today.</p>') + '</section>';
+  }
+  function appCard(){
+    if (!biz().appLink) return '';
+    return '<section class="panel" aria-label="Customer app"><h2>Customer app</h2><p class="hint">Send this link to customers: packages and prices, booking on WhatsApp, and UPI payment.</p><div class="row-btns"><button class="btn btn-primary" type="button" data-act="share-app">' + ICON.share + 'Share link</button><a class="btn" href="' + esc(biz().appLink) + '" target="_blank" rel="noopener">Open</a></div></section>';
+  }
+  function installCard(){
+    var standalone = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+    if (standalone) return '';
+    if (installEvt) return '<section class="banner"><div><strong>Install DN Office</strong><span>Put it on your home screen. It opens full screen and works without internet.</span></div><button class="btn btn-primary" type="button" data-act="install">Install app</button></section>';
+    if (/iphone|ipad|ipod/i.test(navigator.userAgent)) return '<section class="banner"><div><strong>Install DN Office</strong><span>Tap Share in Safari, then Add to Home Screen.</span></div></section>';
+    return '';
+  }
+  function backupBanner(){
+    if (!state.clients.length && !state.jobs.length) return '';
+    var lb = state.meta.lastBackup, days = lb ? dnum(today()) - dnum(lb) : null;
+    if (lb && days < 7) return '';
+    return '<section class="banner"><div><strong>' + (lb ? 'Last backup ' + days + ' days ago' : 'No backup yet') + '</strong><span>Your records are only on this phone. Save a copy to Google Drive or WhatsApp.</span></div><button class="btn btn-primary" type="button" data-act="backup">Back up now</button></section>';
+  }
+  function welcomeCard(){
+    if (state.clients.length || state.jobs.length) return '';
+    return '<section class="panel"><h2>Welcome to DN Office</h2><p class="hint">Bring your clients and quotes from Claude: tap Restore and pick the backup file. Or start fresh with the + button.</p><div class="row-btns"><button class="btn btn-primary" type="button" data-act="restore">Restore from backup</button></div></section>';
+  }
+  function viewToday(){
+    var L = lists(), t = today();
+    var dueToday = L.follow.slice(0, 6), workSoon = L.work.filter(function(j){ return j.workDate && j.workDate <= addDays(t, 2); }).slice(0, 6);
+    var lists_ = (workSoon.length ? '<p class="section-h">Work in the next 2 days</p>' + workSoon.map(function(j){ return jobItem(j, 'work'); }).join('') : '') +
+      (dueToday.length ? '<p class="section-h">Follow-ups due</p>' + dueToday.map(function(j){ return jobItem(j, 'follow'); }).join('') : '') +
+      (L.money.length ? '<p class="section-h">Money to collect</p>' + L.money.slice(0, 4).map(function(j){ return jobItem(j, 'money'); }).join('') : '');
+    if (!lists_ && L.quotes.length) lists_ = '<p class="section-h">Quotes waiting for an answer</p>' + L.quotes.slice(0, 4).map(function(j){ return jobItem(j, 'quotes'); }).join('');
+    if (!lists_ && (state.clients.length || state.jobs.length)) lists_ = '<p class="empty">Nothing needs action today. Tap + to make a quote.</p>';
+    return installCard() + welcomeCard() + backupBanner() + tilesHtml(L, '') + (lists_ ? '<section class="list" aria-label="Needs action">' + lists_ + '</section>' : '') + goalCard(true) + appCard();
+  }
+  function viewJobs(){
+    var L = lists(), tab = state.jobsTab, html = '', bar = '';
+    var sub = [['money','Money'],['work','Work'],['quotes','Quotes'],['follow','Follow-ups'],['all','All jobs']].map(function(x){ return '<button class="chip" type="button" data-jobs-tab="' + x[0] + '" aria-pressed="' + (tab === x[0]) + '">' + x[1] + '</button>'; }).join('');
+    if (tab === 'money'){ bar = 'Jobs you have won where the customer still owes money.'; html = L.money.map(function(j){ return jobItem(j, 'money'); }).join('') || '<p class="empty">Nobody owes you money right now.</p>'; }
+    else if (tab === 'work'){ bar = 'Confirmed jobs and jobs in progress, by planned date.'; html = L.work.map(function(j){ return jobItem(j, 'work'); }).join('') || '<p class="empty">No pending work. Tap Won on a quote and it moves here.</p>'; }
+    else if (tab === 'quotes'){ bar = 'Quotes and enquiries waiting for an answer. Oldest first.'; html = L.quotes.map(function(j){ return jobItem(j, 'quotes'); }).join('') || '<p class="empty">No quotes waiting. Tap + to make one.</p>'; }
+    else if (tab === 'follow'){ bar = 'Follow-ups due, and AMC contracts ending in the next 30 days.';
+      html = (L.follow.length ? '<p class="section-h">Follow-ups due</p>' + L.follow.map(function(j){ return jobItem(j, 'follow'); }).join('') : '') + (L.amc.length ? '<p class="section-h">AMC ending soon</p>' + L.amc.map(function(j){ return jobItem(j, 'amc'); }).join('') : '') || '<p class="empty">Nothing due today.</p>'; }
+    else {
+      bar = '';
+      var js = state.jobs.filter(function(j){ var c = clientOf(j); return (!state.statusFilter || j.status === state.statusFilter) && matches([c.name, c.phone, c.area, j.title, j.quoteNo].join(' ')); }).sort(function(a, b){ return (b.date || '').localeCompare(a.date || ''); });
+      html = '<input id="q" type="search" placeholder="Search name, phone, area or quote no." aria-label="Search jobs" value="' + esc(state.q) + '"><select id="sf" aria-label="Filter by status"><option value="">All statuses</option>' + STATUSES.map(function(s){ return '<option' + (s === state.statusFilter ? ' selected' : '') + '>' + s + '</option>'; }).join('') + '</select>' +
+        (js.map(function(j){ return jobItem(j, 'jobs'); }).join('') || '<p class="empty">' + (state.jobs.length ? 'No job matches.' : 'No jobs yet.') + '</p>');
+    }
+    return tilesHtml(L, tab) + '<div class="chips" role="group" aria-label="Job lists">' + sub + '</div>' + (bar ? '<p class="hint">' + bar + '</p>' : '') + '<div class="list">' + html + '</div>';
+  }
+  function viewClients(){
+    var cs = state.clients.filter(function(c){ return matches([c.name, c.phone, c.area, c.type].join(' ')); }).sort(function(a, b){ return a.name.localeCompare(b.name); });
+    return '<input id="q" type="search" placeholder="Search name, phone or area" aria-label="Search clients" value="' + esc(state.q) + '"><p class="hint">' + state.clients.length + (state.clients.length === 1 ? ' client' : ' clients') + '</p><div class="list">' +
+      (cs.map(function(c){
+        var jobs = state.jobs.filter(function(j){ return j.clientId === c.id; });
+        var due = jobs.reduce(function(s, j){ return s + (RECEIVABLE[j.status] ? dueOf(j) : 0); }, 0), billed = jobs.reduce(function(s, j){ return s + (RECEIVABLE[j.status] ? num(j.amount) : 0); }, 0);
+        return '<div class="item"><div class="item-top"><div class="item-main"><div class="item-title"><button class="linkish" type="button" data-act="client" data-id="' + esc(c.id) + '">' + esc(c.name) + '</button>' + (due > 0 ? '<span class="pill p-amber">' + rupees(due) + ' due</span>' : '') + '</div><span class="meta">' + [c.type, c.phone, c.area].filter(Boolean).map(esc).join(' · ') + '</span></div>' +
+          '<div class="money"><strong class="num">' + jobs.length + (jobs.length === 1 ? ' job' : ' jobs') + '</strong><span>' + rupees(billed) + ' billed</span></div></div><div class="acts">' + callBtn(c.phone) + waBtn(c.phone, '', 'WhatsApp') + '<button class="btn" type="button" data-act="client" data-id="' + esc(c.id) + '">Open</button></div></div>';
+      }).join('') || '<p class="empty">' + (state.clients.length ? 'No client matches your search.' : 'No clients yet. Tap + to add one.') + '</p>') + '</div>';
+  }
+  function viewGoal(){
+    var g = goalCalc();
+    return goalCard(false) + '<section class="panel"><h2>Week by week</h2><div style="overflow-x:auto"><table class="t"><thead><tr><th>Week</th><th class="r">Received</th><th class="r">Profit</th></tr></thead><tbody>' +
+      g.weeks.map(function(w, i){ return '<tr><td>' + short(w.from) + ' – ' + short(w.to) + (i === g.curWeek ? ' <span class="pill p-blue">now</span>' : '') + '</td><td class="r num">' + rupees(w.received) + '</td><td class="r num">' + rupees(w.profit) + '</td></tr>'; }).join('') +
+      '</tbody></table></div><p class="hint">Change the goal amount and dates in Settings.</p></section>';
+  }
+  function viewSettings(){
+    var s = state.settings, b = s.biz, g = s.goal, lb = state.meta.lastBackup;
+    return '<section class="panel"><h2>Backup</h2><p class="hint">Your records are saved only on this phone. Back up every week to Google Drive or WhatsApp, so a lost or broken phone doesn’t take them with it.</p>' +
+      '<dl class="kv"><dt>Records</dt><dd>' + state.clients.length + ' clients, ' + state.jobs.length + ' jobs</dd><dt>Last backup</dt><dd>' + (lb ? fmtDate(lb) : 'Never') + '</dd><dt>Storage</dt><dd>' + (NATIVE ? 'Saved inside this app. Uninstalling the app deletes it, so back up first.' : state.persisted === true ? 'Protected on this phone' : state.persisted === false ? 'The phone may clear it when space runs low, so back up often' : 'Checking…') + '</dd></dl>' +
+      '<div class="row-btns"><button class="btn btn-primary" type="button" data-act="backup">' + ICON.share + 'Back up now</button><button class="btn" type="button" data-act="restore">Restore from backup</button></div></section>' +
+      '<form class="panel" id="settingsForm" novalidate><h2>Your business</h2><div class="grid">' +
+      '<label class="f"><span>Business name</span><input id="sName" type="text" value="' + esc(b.name) + '"></label>' +
+      '<label class="f"><span>Tagline</span><input id="sTag" type="text" value="' + esc(b.tagline) + '"></label>' +
+      '<label class="f"><span>WhatsApp / phone number</span><input id="sPhone" type="tel" value="' + esc(b.phone) + '"></label>' +
+      '<label class="f"><span>UPI ID for payments</span><input id="sUpi" type="text" autocapitalize="off" value="' + esc(b.upi) + '"></label>' +
+      '<label class="f"><span>Email</span><input id="sEmail" type="email" value="' + esc(b.email) + '"></label>' +
+      '<label class="f"><span>Address on quotes</span><input id="sAddr" type="text" value="' + esc(b.address) + '"></label>' +
+      '<label class="f wide"><span>Customer app link</span><input id="sApp" type="url" value="' + esc(b.appLink) + '"></label>' +
+      '<label class="check f wide"><input id="sGst" type="checkbox"' + (b.gstRegistered ? ' checked' : '') + '><span>I have a GST number. Add GST to new quotes.</span></label>' +
+      '<label class="f"><span>Your GSTIN</span><input id="sGstin" type="text" autocapitalize="characters" value="' + esc(b.gstin) + '"></label>' +
+      '<label class="f"><span>Logo on quotes and cards</span><select id="sLogo"><option value="bee"' + (b.logo !== 'd' ? ' selected' : '') + '>Bee</option><option value="d"' + (b.logo === 'd' ? ' selected' : '') + '>Network D</option></select></label>' +
+      (b.gstRegistered && !b.gstin ? '<p class="msg f wide">GST is turned on, but your GSTIN is empty. Only a business with a GST number can charge GST.</p>' : '') +
+      '</div><h2>Quotes</h2><div class="grid"><label class="f"><span>Next quote number</span><input id="sNext" type="number" inputmode="numeric" min="1" step="1" value="' + esc(s.nextNo) + '"></label>' +
+      '<label class="f wide"><span>Terms on every new quote (one per line)</span><textarea id="sTerms" rows="5">' + esc(s.terms) + '</textarea></label></div>' +
+      '<h2>₹ Goal</h2><div class="grid"><label class="f wide"><span>Goal (profit, ₹)</span><input id="gAmt" type="number" inputmode="numeric" min="1" step="1000" value="' + esc(g.amount) + '"></label><label class="f"><span>Start</span><input id="gStart" type="date" value="' + esc(g.start) + '"></label><label class="f"><span>End</span><input id="gEnd" type="date" value="' + esc(g.end) + '"></label></div>' +
+      '<div class="row-btns"><button class="btn btn-primary" type="submit">Save settings</button></div></form>' +
+      '<p class="hint" style="text-align:center">DN Office ' + VERSION + (NATIVE ? ' for Android' : '') + ' · Debug Networks, Hazaribagh</p>';
+  }
+  function render(force){
+    $('mark').innerHTML = logoSvg(biz().logo, 30);
+    $('title').textContent = TITLES[state.view] || 'Today';
+    document.querySelectorAll('.navbtn[data-view]').forEach(function(b){ if (b.dataset.view === state.view) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
+    var v = $('view');
+    if (!force && state.view === 'settings' && v.querySelector('#settingsForm')) return;
+    v.innerHTML = ({ today:viewToday, jobs:viewJobs, clients:viewClients, goal:viewGoal, settings:viewSettings }[state.view] || viewToday)();
+  }
+  function setView(v){
+    var changed = state.view !== v; state.view = v; state.q = '';
+    render(true); if (changed) window.scrollTo(0, 0);
+    if (v === 'today') unguard(); else guard();
+  }
+
+  /* ---------- back button ---------- */
+  var guarded = false, skipPop = false;
+  function guard(){ if (!guarded && (state.sheet || state.view !== 'today')){ history.pushState({ dn:1 }, ''); guarded = true; } }
+  function unguard(){ if (guarded && !state.sheet && state.view === 'today'){ guarded = false; skipPop = true; history.back(); } }
+  window.addEventListener('popstate', function(){
+    if (skipPop){ skipPop = false; return; }
+    guarded = false;
+    if (state.sheet) closeSheet(true);
+    else if (state.view !== 'today'){ state.view = 'today'; state.q = ''; render(true); }
+    guard();
+  });
+
+  /* ---------- sheets ---------- */
+  function openSheet(s){
+    state.sheet = s; var d = $('sheet');
+    d.classList.toggle('mini', s.mode === 'new' || s.mode === 'copy');
+    renderSheet();
+    if (!d.open){ try { d.showModal(); } catch(e){ d.setAttribute('open', ''); } }
+    d.scrollTop = 0;
+    if (s.mode === 'copy'){ var a = $('copyArea'); if (a){ a.focus(); a.select(); } }
+    guard();
+  }
+  function closeSheet(fromPop){
+    var d = $('sheet'); state.sheet = null;
+    try { d.close(); } catch(e){ d.removeAttribute('open'); }
+    if (!fromPop) unguard();
+  }
+  function head(title){ return '<div class="sheet-top"><button class="iconbtn" type="button" data-act="close" aria-label="Close">' + ICON.back + '</button><h2 id="sheetTitle">' + esc(title) + '</h2></div>'; }
+  function clientOptions(sel){
+    return '<option value="">Choose a client</option>' + state.clients.slice().sort(function(a, b){ return a.name.localeCompare(b.name); }).map(function(c){ return '<option value="' + esc(c.id) + '"' + (c.id === sel ? ' selected' : '') + '>' + esc(c.name) + '</option>'; }).join('') + '<option value="__new">+ Add a new client</option>';
+  }
+  function payBlock(j){
+    var pays = j.payments || [];
+    return '<section class="panel"><h2>Payments</h2><div class="stat-row"><div class="stat"><span>Total</span><strong class="num">' + rupees(num(j.amount)) + '</strong></div><div class="stat"><span>Paid</span><strong class="num">' + rupees(paidOf(j)) + '</strong></div><div class="stat"><span>Due</span><strong class="num">' + rupees(dueOf(j)) + '</strong></div></div>' +
+      '<div class="mini-list">' + (pays.map(function(p){ return '<div class="mini-row"><span><strong class="num">' + rupees(num(p.amount)) + '</strong> <span class="meta">' + fmtDate(p.date) + ' · ' + esc(p.mode) + (p.note ? ' · ' + esc(p.note) : '') + '</span></span><button class="btn btn-danger" type="button" data-act="del-pay" data-id="' + esc(j.id) + '" data-pid="' + esc(p.id) + '">Remove</button></div>'; }).join('') || '<p class="hint">No payments yet.</p>') + '</div>' +
+      '<div class="pay-add"><label class="f"><span>Amount (₹)</span><input id="paAmount" type="number" min="0" step="any" inputmode="decimal" value="' + (dueOf(j) || '') + '"></label><label class="f"><span>Date</span><input id="paDate" type="date" value="' + today() + '"></label><label class="f"><span>Mode</span><select id="paMode">' + MODES.map(function(m){ return '<option>' + m + '</option>'; }).join('') + '</select></label></div>' +
+      '<label class="f"><span>Note (optional)</span><input id="paNote" type="text" placeholder="For example: advance, balance, UPI ref"></label>' +
+      '<div class="row-btns"><button class="btn btn-primary" type="button" data-act="add-pay" data-id="' + esc(j.id) + '">Save payment</button></div></section>';
+  }
+  function renderSheet(){
+    var s = state.sheet, body = $('sheetBody'); if (!s) return;
+    body.classList.remove('no-gst');
+    if (s.mode === 'new'){
+      var opt = function(act, title, sub){ return '<button class="bigopt" type="button" data-act="' + act + '"><span class="dot">' + ICON.share.replace('M12 15V4M8 8l4-4 4 4M5 13v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5', 'M12 5v14M5 12h14') + '</span><span><b>' + title + '</b><span>' + sub + '</span></span></button>'; };
+      body.innerHTML = head('New') + '<div class="sheet-in" style="padding-top:8px">' + opt('new-quote', 'New quote', 'Pick a kit or add items, then share the PDF') + opt('new-job', 'New job', 'Repair, check-up or work without a quote') + opt('new-client', 'New client', 'Save a customer’s name and number') + '</div>';
+      return;
+    }
+    if (s.mode === 'copy'){ body.innerHTML = head('Copy this message') + '<div class="sheet-in"><textarea id="copyArea" rows="8" readonly>' + esc(s.text) + '</textarea><p class="hint">Select the text, copy it, and paste it into WhatsApp.</p></div>'; return; }
+    if (s.mode === 'restore'){
+      var d = s.data, nc = d.clients.length, nj = d.jobs.length;
+      body.innerHTML = head('Restore backup') + '<div class="sheet-in"><section class="panel"><h2>This backup has ' + nc + (nc === 1 ? ' client' : ' clients') + ' and ' + nj + (nj === 1 ? ' job' : ' jobs') + '</h2><p class="hint">Made on ' + (fmtDate(d.exportedAt) || 'an unknown date') + '. Restoring replaces what is on this phone now (' + state.clients.length + ' clients, ' + state.jobs.length + ' jobs).</p>' +
+        '<div class="row-btns"><button class="btn btn-primary" type="button" data-act="do-restore">Replace with this backup</button><button class="btn" type="button" data-act="close">Cancel</button></div></section></div>';
+      return;
+    }
+    if (s.mode === 'client'){
+      var c = state.clients.find(function(x){ return x.id === s.id; });
+      if (!c){ body.innerHTML = head('Client') + '<div class="sheet-in"><p class="empty">This client was deleted.</p></div>'; return; }
+      var jobs = state.jobs.filter(function(j){ return j.clientId === c.id; }).sort(function(a, b){ return (b.date || '').localeCompare(a.date || ''); });
+      var billed = 0, paid = 0, due = 0; jobs.forEach(function(j){ if (RECEIVABLE[j.status]){ billed += num(j.amount); paid += paidOf(j); due += dueOf(j); } });
+      body.innerHTML = head(c.name) + '<div class="sheet-in">' +
+        '<div class="row-btns">' + callBtn(c.phone) + waBtn(c.phone, '', 'WhatsApp', 'btn-go') + '<button class="btn" type="button" data-act="edit-client" data-id="' + esc(c.id) + '">Edit</button></div>' +
+        '<dl class="kv"><dt>Phone</dt><dd>' + (c.phone ? '<span class="num">' + esc(c.phone) + '</span>' : '—') + '</dd><dt>Area / address</dt><dd>' + (esc(c.area) || '—') + '</dd><dt>Type</dt><dd>' + (esc(c.type) || '—') + '</dd>' + (c.notes ? '<dt>Notes</dt><dd>' + esc(c.notes).replace(/\n/g, '<br>') + '</dd>' : '') + '</dl>' +
+        '<div class="stat-row"><div class="stat"><span>Billed</span><strong class="num">' + rupees(billed) + '</strong></div><div class="stat"><span>Paid</span><strong class="num">' + rupees(paid) + '</strong></div><div class="stat"><span>Due</span><strong class="num">' + rupees(due) + '</strong></div></div>' +
+        '<div class="row-btns"><button class="btn btn-primary" type="button" data-act="new-quote" data-client="' + esc(c.id) + '">+ Quote</button><button class="btn" type="button" data-act="new-job" data-client="' + esc(c.id) + '">+ Job</button></div>' +
+        '<p class="section-h">Jobs</p><div class="mini-list">' + (jobs.map(function(j){ return '<div class="mini-row"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><strong style="overflow-wrap:anywhere">' + esc(j.title || 'Job') + '</strong><span class="meta">' + [j.quoteNo, fmtDate(j.date), rupees(num(j.amount))].filter(Boolean).map(esc).join(' · ') + '</span></div><div style="display:flex;align-items:center;gap:8px"><span class="pill ' + (PILL[j.status] || 'p-gray') + '">' + esc(j.status) + '</span><button class="btn" type="button" data-act="job" data-id="' + esc(j.id) + '">Open</button></div></div>'; }).join('') || '<p class="hint">No jobs for this client yet.</p>') + '</div>' +
+        '<div><button class="btn btn-danger" type="button" data-act="del-client" data-id="' + esc(c.id) + '">Delete client and their jobs</button></div></div>';
+      return;
+    }
+    if (s.mode === 'client-form'){
+      var e = s.id ? (state.clients.find(function(x){ return x.id === s.id; }) || {}) : {};
+      body.innerHTML = head(s.id ? 'Edit client' : 'New client') + '<form id="clientForm" novalidate><div class="sheet-in"><div class="grid">' +
+        '<label class="f wide"><span>Client or shop name</span><input id="cfName" type="text" autocomplete="off" value="' + esc(e.name) + '"></label>' +
+        '<label class="f"><span>Phone</span><input id="cfPhone" type="tel" autocomplete="off" value="' + esc(e.phone) + '"></label>' +
+        '<label class="f"><span>Type</span><select id="cfType">' + TYPES.map(function(t){ return '<option' + (t === (e.type || 'Shop') ? ' selected' : '') + '>' + t + '</option>'; }).join('') + '</select></label>' +
+        '<label class="f wide"><span>Area or address</span><input id="cfArea" type="text" autocomplete="off" value="' + esc(e.area) + '"></label>' +
+        '<label class="f wide"><span>Notes (optional)</span><textarea id="cfNotes" rows="3">' + esc(e.notes) + '</textarea></label></div>' +
+        '<p class="msg" id="cfMsg" role="alert" hidden></p></div><div class="sheet-actions"><button class="btn btn-primary" type="submit">' + (s.id ? 'Save changes' : 'Add client') + '</button></div></form>';
+      return;
+    }
+    if (s.mode === 'pay'){
+      var pj = state.jobs.find(function(x){ return x.id === s.id; }); if (!pj){ closeSheet(); return; }
+      body.innerHTML = head('Payment from ' + clientOf(pj).name) + '<div class="sheet-in"><p class="hint">' + esc(pj.title) + '</p>' + payBlock(pj) + '</div>';
+      return;
+    }
+    if (s.mode === 'job'){
+      var j = s.id ? (state.jobs.find(function(x){ return x.id === s.id; }) || null) : null;
+      var v = j || { clientId:s.clientId || '', title:'', status:'Confirmed', amount:'', cost:'', quoteNo:'', date:today(), workDate:'', followUp:'', amcUntil:'', warrantyUntil:'', notes:'', payments:[] };
+      var hasQuote = !!(j && j.quote), jc = j ? clientOf(j) : null;
+      body.innerHTML = head(j ? jc.name : 'New job') + '<div class="sheet-in">' +
+        (j ? '<div class="row-btns">' + callBtn(jc.phone) + waBtn(jc.phone, '', 'WhatsApp', 'btn-go') + '</div>' : '') +
+        '<form id="jobForm" class="panel" novalidate><div class="grid">' +
+        '<label class="f wide"><span>Client</span><select id="jfClient">' + clientOptions(v.clientId) + '</select></label>' +
+        '<div class="grid f wide" id="jfNew" hidden><label class="f"><span>New client name</span><input id="jfNcName" type="text" autocomplete="off"></label><label class="f"><span>Phone</span><input id="jfNcPhone" type="tel" autocomplete="off"></label></div>' +
+        '<label class="f wide"><span>Work (for example: 4 HD cameras with DVR, or CCTV check-up)</span><input id="jfTitle" type="text" autocomplete="off" value="' + esc(v.title) + '"></label>' +
+        '<label class="f"><span>Status</span><select id="jfStatus">' + STATUSES.map(function(st){ return '<option' + (st === v.status ? ' selected' : '') + '>' + st + '</option>'; }).join('') + '</select></label>' +
+        '<label class="f"><span>Total amount (₹)' + (hasQuote ? ', from the quote' : '') + '</span><input id="jfAmount" type="number" min="0" step="any" inputmode="decimal" value="' + esc(v.amount) + '"' + (hasQuote ? ' readonly' : '') + '></label>' +
+        '<label class="f"><span>Product cost (₹), what you pay your supplier</span><input id="jfCost" type="number" min="0" step="any" inputmode="decimal" value="' + esc(v.cost || '') + '"></label>' +
+        '<label class="f"><span>Quote or enquiry date</span><input id="jfDate" type="date" value="' + esc(v.date) + '"></label>' +
+        '<label class="f"><span>Planned work date</span><input id="jfWork" type="date" value="' + esc(v.workDate) + '"></label>' +
+        '<label class="f"><span>Next follow-up</span><input id="jfFollow" type="date" value="' + esc(v.followUp) + '"></label>' +
+        '<label class="f"><span>Warranty until (optional)</span><input id="jfWarranty" type="date" value="' + esc(v.warrantyUntil) + '"></label>' +
+        '<label class="f"><span>AMC until (optional)</span><input id="jfAmc" type="date" value="' + esc(v.amcUntil) + '"></label>' +
+        '<label class="f wide"><span>Notes (optional)</span><textarea id="jfNotes" rows="3">' + esc(v.notes) + '</textarea></label></div>' +
+        '<p class="msg" id="jfMsg" role="alert" hidden></p><div class="row-btns"><button class="btn btn-primary" type="submit">' + (j ? 'Save changes' : 'Add job') + '</button></div></form>' +
+        (j ? '<section class="panel"><h2>Quote and CCTV card</h2><div class="row-btns">' + (hasQuote ? '<button class="btn" type="button" data-act="edit-quote" data-id="' + esc(j.id) + '">Open quote ' + esc(j.quoteNo) + '</button>' : '<button class="btn" type="button" data-act="edit-quote" data-id="' + esc(j.id) + '">Make a quote for this job</button>') +
+          '<button class="btn btn-go" type="button" data-act="card" data-id="' + esc(j.id) + '">' + ICON.share + 'Share CCTV card</button><button class="btn" type="button" data-act="card-text" data-id="' + esc(j.id) + '">Card as text</button></div>' +
+          '<p class="hint">The CCTV card is an image for your customer: what you installed, the warranty and AMC dates, and your number. Send it on WhatsApp after the job is done.</p></section>' +
+          payBlock(j) + '<div><button class="btn btn-danger" type="button" data-act="del-job" data-id="' + esc(j.id) + '">Delete this job</button></div>' : '') + '</div>';
+      return;
+    }
+    if (s.mode === 'quote') renderQuoteSheet();
+  }
+
+  /* ---------- quote builder ---------- */
+  function qItem(k, qty){ var it = ITEMS[k]; return { uid:uid('i'), desc:it[0], qty:String(qty || 1), unit:it[1], rate:String(it[2]), gst:'18' }; }
+  function newDraft(clientId){ return { clientId:clientId || '', ncName:'', ncPhone:'', title:'', no:formatNo(state.settings.nextNo), date:today(), validDays:'7', items:[], discount:'', interstate:false, withGst:!!biz().gstRegistered, terms:state.settings.terms || DEFAULT_TERMS }; }
+  function draftFromJob(j){ var q = clone(j.quote || {}); return { jobId:j.id, clientId:j.clientId, ncName:'', ncPhone:'', title:j.title || '', no:q.no || j.quoteNo || formatNo(state.settings.nextNo), date:q.date || j.date || today(), validDays:String(q.validDays || '7'), items:(q.items || []).map(function(i){ return Object.assign({ uid:uid('i') }, i); }), discount:q.discount || '', interstate:!!q.interstate, withGst:q.withGst != null ? !!q.withGst : !!biz().gstRegistered, terms:q.terms != null ? q.terms : (state.settings.terms || DEFAULT_TERMS) }; }
+  function draftClient(d){ return d.clientId === '__new' ? { name:d.ncName || 'Customer', phone:d.ncPhone, area:'' } : (state.clients.find(function(x){ return x.id === d.clientId; }) || { name:'Customer', phone:'', area:'' }); }
+  function renderQuoteSheet(){
+    var d = state.sheet.draft, body = $('sheetBody');
+    body.classList.toggle('no-gst', !d.withGst);
+    body.innerHTML = head(d.jobId ? 'Quote ' + d.no : 'New quote') + '<div class="sheet-in">' +
+      '<div class="grid"><label class="f wide"><span>Client</span><select id="qClient">' + clientOptions(d.clientId) + '</select></label>' +
+      '<div class="grid f wide" id="qNew"' + (d.clientId === '__new' ? '' : ' hidden') + '><label class="f"><span>New client name</span><input id="qNcName" type="text" autocomplete="off" value="' + esc(d.ncName) + '"></label><label class="f"><span>Phone</span><input id="qNcPhone" type="tel" autocomplete="off" value="' + esc(d.ncPhone) + '"></label></div>' +
+      '<label class="f wide"><span>Work (short name for your job list)</span><input id="qTitle" type="text" autocomplete="off" placeholder="For example: 4 HD cameras with DVR" value="' + esc(d.title) + '"></label>' +
+      '<label class="f"><span>Quote number</span><input id="qNo" type="text" class="num" value="' + esc(d.no) + '"></label>' +
+      '<label class="f"><span>Date</span><input id="qDate" type="date" value="' + esc(d.date) + '"></label>' +
+      '<label class="f"><span>Valid for (days)</span><input id="qValid" type="number" inputmode="numeric" min="0" step="1" value="' + esc(d.validDays) + '"></label>' +
+      '<label class="f"><span>Discount (₹)</span><input id="qDisc" type="number" inputmode="decimal" min="0" step="any" value="' + esc(d.discount) + '"></label></div>' +
+      '<div><p class="section-h" style="margin-bottom:8px">Start from a kit</p><div class="chips">' + Object.keys(KITS).map(function(k){ return '<button class="chip" type="button" data-act="kit" data-kit="' + esc(k) + '">' + esc(k) + '</button>'; }).join('') + '</div></div>' +
+      '<div id="qItems" style="display:flex;flex-direction:column;gap:10px"></div>' +
+      '<div><p class="section-h" style="margin-bottom:8px">Add an item (your rates)</p><div class="chips" style="flex-wrap:wrap">' + Object.keys(ITEMS).map(function(k){ return '<button class="chip" type="button" data-act="qadd" data-item="' + k + '">+ ' + esc(ITEMS[k][0]) + '</button>'; }).join('') + '<button class="chip" type="button" data-act="qadd" data-item="">+ Blank item</button></div></div>' +
+      '<label class="check"><input id="qGst" type="checkbox"' + (d.withGst ? ' checked' : '') + '><span>Add GST to this quote</span></label>' +
+      '<p class="msg" id="qGstWarn"' + (d.withGst && !biz().gstin ? '' : ' hidden') + '>Only a business with a GST number can charge GST, and your GSTIN is empty in Settings. Untick this unless you have a GST number.</p>' +
+      '<label class="check gst-only"><input id="qInter" type="checkbox"' + (d.interstate ? ' checked' : '') + '><span>Customer is in another state (IGST instead of CGST + SGST)</span></label>' +
+      '<div class="totals" id="qTotals"></div>' +
+      '<label class="f"><span>Terms (one per line)</span><textarea id="qTerms" rows="4">' + esc(d.terms) + '</textarea></label>' +
+      '<p class="msg" id="qMsg" role="alert" hidden></p></div>' +
+      '<div class="sheet-actions"><button class="btn btn-primary" type="button" data-act="q-save">Save</button><button class="btn btn-go" type="button" data-act="q-pdf">' + ICON.share + 'Share PDF</button><button class="btn" type="button" data-act="q-text">' + ICON.chat + 'As text</button></div>';
+    renderQItems(); renderQTotals();
+  }
+  function renderQItems(){
+    var d = state.sheet.draft, box = $('qItems'); if (!box) return;
+    box.innerHTML = d.items.length ? d.items.map(function(it){
+      var u = it.uid, at = ' data-qi="' + u + '"';
+      return '<div class="qitem"><label class="f"><span>Item</span><input id="qi-d-' + u + '" type="text"' + at + ' data-k="desc" value="' + esc(it.desc) + '" autocomplete="off"></label><div class="qnums">' +
+        '<label class="f"><span>Qty</span><input id="qi-q-' + u + '" type="number" min="0" step="any" inputmode="decimal"' + at + ' data-k="qty" value="' + esc(it.qty) + '"></label>' +
+        '<label class="f"><span>Unit</span><select id="qi-u-' + u + '"' + at + ' data-k="unit">' + UNITS.concat(UNITS.indexOf(it.unit) < 0 ? [it.unit] : []).map(function(x){ return '<option' + (x === it.unit ? ' selected' : '') + '>' + esc(x) + '</option>'; }).join('') + '</select></label>' +
+        '<label class="f"><span>Rate (₹)</span><input id="qi-r-' + u + '" type="number" min="0" step="any" inputmode="decimal"' + at + ' data-k="rate" value="' + esc(it.rate) + '"></label></div>' +
+        '<div class="qfoot"><label class="f gst-only" style="flex:0 0 96px"><span>GST %</span><input id="qi-g-' + u + '" type="number" min="0" max="100" step="any" inputmode="decimal"' + at + ' data-k="gst" value="' + esc(it.gst) + '"></label>' +
+        '<output id="qi-a-' + u + '"></output><button class="btn rm" type="button" data-act="qrm" data-qi="' + u + '" aria-label="Remove this item">Remove</button></div></div>';
+    }).join('') : '<p class="empty">No items yet. Start from a kit above, or add items one by one.</p>';
+  }
+  function renderQTotals(){
+    var d = state.sheet.draft, c = calcQuote(d);
+    c.lines.forEach(function(l){ var o = $('qi-a-' + l.uid); if (o) o.textContent = '₹' + fmt2(l.amount); });
+    var box = $('qTotals'); if (!box) return;
+    box.innerHTML = totalRows(c, d).map(function(r){ return '<div><span>' + r[0] + '</span><span class="num">' + r[1] + '</span></div>'; }).join('') +
+      '<div class="grand"><span>Total</span><span class="num">₹' + fmt2(c.total) + '</span></div><div><span>In words</span><span style="text-align:right">Rupees ' + inWords(c.total) + ' Only</span></div>';
+    var saved = d.jobId ? state.jobs.find(function(x){ return x.id === d.jobId; }) : null;
+    if (saved && saved.quote && Math.round(num(saved.amount)) !== c.total) box.innerHTML += '<p class="hint">This quote was saved at ₹' + fmt2(num(saved.amount)) + '. Saving now changes the job total to ₹' + fmt2(c.total) + '.</p>';
+  }
+  function saveQuote(){
+    var d = state.sheet.draft, msg = $('qMsg'), show = function(t){ msg.textContent = t; msg.hidden = false; msg.scrollIntoView({ block:'center' }); return null; };
+    if (!d.clientId) return show('Choose a client, or pick "+ Add a new client".');
+    if (d.clientId === '__new' && !d.ncName.trim()) return show('Enter the new client’s name.');
+    var c = calcQuote(d);
+    if (!printable(c).length) return show('Add at least one item.');
+    msg.hidden = true;
+    var cid = d.clientId;
+    if (cid === '__new'){ var nc = { id:uid('c'), name:d.ncName.trim(), phone:d.ncPhone.trim(), type:'Shop', area:'', notes:'', createdAt:new Date().toISOString() }; if (!putClient(nc)) return null; cid = nc.id; d.clientId = cid; d.ncName = ''; }
+    var old = d.jobId ? state.jobs.find(function(x){ return x.id === d.jobId; }) : null;
+    var quote = { no:d.no.trim(), date:d.date, validDays:d.validDays, items:d.items.map(function(i){ return { desc:i.desc, qty:i.qty, unit:i.unit, rate:i.rate, gst:i.gst }; }), discount:d.discount, interstate:!!d.interstate, withGst:!!d.withGst, terms:d.terms };
+    var title = d.title.trim() || (printable(c)[0] ? printable(c)[0].desc : 'CCTV work');
+    var j = old ? clone(old) : { id:uid('j'), clientId:cid, status:'Quote sent', cost:'', workDate:'', followUp:addDays(d.date || today(), 2), amcUntil:'', warrantyUntil:'', notes:'', payments:[], createdAt:new Date().toISOString() };
+    j.clientId = cid; j.title = title; j.quote = quote; j.quoteNo = quote.no; j.date = quote.date; j.amount = c.total;
+    if (!putJob(j)) return null;
+    d.jobId = j.id;
+    var tail = parseInt((quote.no.match(/(\d+)\s*$/) || [])[1], 10);
+    if (isFinite(tail) && tail >= num(state.settings.nextNo)){ state.settings.nextNo = tail + 1; persist(); }
+    var sel = $('qClient'); if (sel) sel.innerHTML = clientOptions(d.clientId);
+    var nw = $('qNew'); if (nw) nw.hidden = true;
+    var ht = $('sheetTitle'); if (ht) ht.textContent = 'Quote ' + quote.no;
+    render(); toast('Quote ' + quote.no + ' saved.');
+    return j;
+  }
+
+  /* ---------- form saves ---------- */
+  function saveClientForm(e){
+    e.preventDefault();
+    var name = $('cfName').value.trim(), msg = $('cfMsg');
+    if (!name){ msg.textContent = 'Enter the client or shop name.'; msg.hidden = false; return; }
+    var old = state.sheet.id ? state.clients.find(function(x){ return x.id === state.sheet.id; }) : null;
+    var c = { id:old ? old.id : uid('c'), name:name, phone:$('cfPhone').value.trim(), type:$('cfType').value, area:$('cfArea').value.trim(), notes:$('cfNotes').value.trim(), createdAt:old ? old.createdAt : new Date().toISOString() };
+    if (putClient(c)){ toast(old ? 'Client updated.' : name + ' added.'); render(); openSheet({ mode:'client', id:c.id }); }
+  }
+  function saveJobForm(e){
+    e.preventDefault();
+    var msg = $('jfMsg'), cid = $('jfClient').value, show = function(t){ msg.textContent = t; msg.hidden = false; };
+    if (!cid) return show('Choose a client, or pick "+ Add a new client".');
+    if (cid === '__new' && !$('jfNcName').value.trim()) return show('Enter the new client’s name.');
+    if (!$('jfTitle').value.trim()) return show('Describe the work, for example "4 HD cameras with DVR".');
+    var old = state.sheet.id ? state.jobs.find(function(x){ return x.id === state.sheet.id; }) : null;
+    if (cid === '__new'){ var nc = { id:uid('c'), name:$('jfNcName').value.trim(), phone:$('jfNcPhone').value.trim(), type:'Shop', area:'', notes:'', createdAt:new Date().toISOString() }; if (!putClient(nc)) return; cid = nc.id; }
+    var j = old ? clone(old) : { id:uid('j'), payments:[], quote:null, quoteNo:'', createdAt:new Date().toISOString() };
+    j.clientId = cid; j.title = $('jfTitle').value.trim(); j.status = $('jfStatus').value; if (!j.quote) j.amount = num($('jfAmount').value);
+    j.cost = num($('jfCost').value); j.date = $('jfDate').value; j.workDate = $('jfWork').value; j.followUp = $('jfFollow').value;
+    j.warrantyUntil = $('jfWarranty').value; j.amcUntil = $('jfAmc').value; j.notes = $('jfNotes').value.trim();
+    if (putJob(j)){ toast(old ? 'Job updated.' : 'Job added.'); render(); closeSheet(); }
+  }
+  function saveSettingsForm(e){
+    e.preventDefault();
+    var s = clone(state.settings);
+    s.biz = Object.assign({}, s.biz, { name:$('sName').value.trim() || 'Debug Networks', tagline:$('sTag').value.trim(), phone:$('sPhone').value.trim(), upi:$('sUpi').value.trim(), email:$('sEmail').value.trim(), address:$('sAddr').value.trim(), gstRegistered:$('sGst').checked, gstin:$('sGstin').value.trim(), logo:$('sLogo').value, appLink:$('sApp').value.trim() });
+    s.nextNo = Math.max(1, Math.round(num($('sNext').value)) || 1); s.terms = $('sTerms').value;
+    s.goal = { amount:Math.max(1, num($('gAmt').value)) || 100000, start:$('gStart').value || DEFAULT_SETTINGS.goal.start, end:$('gEnd').value || DEFAULT_SETTINGS.goal.end };
+    var prev = state.settings; state.settings = s;
+    if (persist()){ toast('Settings saved.'); render(true); } else state.settings = prev;
+  }
+  function addPayment(jobId){
+    var j = state.jobs.find(function(x){ return x.id === jobId; }); if (!j) return;
+    var amt = num($('paAmount').value); if (amt <= 0){ toast('Enter the amount received.'); return; }
+    var p = { id:uid('p'), amount:amt, date:$('paDate').value || today(), mode:$('paMode').value, note:$('paNote') ? $('paNote').value.trim() : '' };
+    var nj = clone(j); nj.payments = (nj.payments || []).concat([p]);
+    if (putJob(nj)){ toast(rupees(amt) + ' payment saved.'); render(); if (state.sheet && state.sheet.mode === 'job') renderSheet(); else closeSheet(); }
+  }
+
+  /* ---------- events ---------- */
+  document.addEventListener('click', async function(e){
+    var b = e.target.closest('[data-act], [data-view], [data-jobs-tab]'); if (!b) return;
+    if (b.dataset.view){ setView(b.dataset.view); return; }
+    if (b.dataset.jobsTab){ state.jobsTab = b.dataset.jobsTab; setView('jobs'); return; }
+    var act = b.dataset.act, id = b.dataset.id, j = id ? state.jobs.find(function(x){ return x.id === id; }) : null;
+    if (act === 'close') return closeSheet();
+    if (act === 'new') return openSheet({ mode:'new' });
+    if (act === 'new-client') return openSheet({ mode:'client-form' });
+    if (act === 'new-job') return openSheet({ mode:'job', clientId:b.dataset.client || '' });
+    if (act === 'new-quote') return openSheet({ mode:'quote', draft:newDraft(b.dataset.client || '') });
+    if (act === 'client') return openSheet({ mode:'client', id:id });
+    if (act === 'edit-client') return openSheet({ mode:'client-form', id:id });
+    if (act === 'job') return openSheet({ mode:'job', id:id });
+    if (act === 'edit-quote' && j) return openSheet({ mode:'quote', draft:draftFromJob(j) });
+    if (act === 'pay') return openSheet({ mode:'pay', id:id });
+    if (act === 'add-pay') return addPayment(id);
+    if (act === 'msg-pay' && j) return copy(msgPayment(j));
+    if (act === 'msg-quote' && j) return copy(msgQuote(j));
+    if (act === 'msg-amc' && j) return copy(msgAmc(j));
+    if (act === 'card-text' && j) return openWa(clientOf(j).phone, cardText(j));
+    if (act === 'share-app') return shareText(shareMsg());
+    if (act === 'backup') return backupNow();
+    if (act === 'restore'){ $('restoreFile').value = ''; $('restoreFile').click(); return; }
+    if (act === 'do-restore' && state.sheet && state.sheet.data){
+      var d = state.sheet.data; applyData(d); state.meta.lastBackup = (d.exportedAt || '').slice(0, 10);
+      if (persist()){ closeSheet(); state.view = 'today'; render(true); toast('Restored ' + state.clients.length + ' clients and ' + state.jobs.length + ' jobs.'); }
+      return;
+    }
+    if (act === 'install' && installEvt){ var ev = installEvt; installEvt = null; ev.prompt(); try { await ev.userChoice; } catch(_){} render(true); return; }
+    if (act === 'card' && j){ b.disabled = true; var blob = await buildCard(j); b.disabled = false; if (blob) await shareFile(blob, 'CCTV-card-' + safeName(clientOf(j).name) + '.png', 'Your CCTV card from ' + biz().name); return; }
+    if (act === 'status' && j){
+      var nj = clone(j); nj.status = b.dataset.to; if (nj.status === 'Confirmed' || nj.status === 'Lost') nj.followUp = '';
+      if ((nj.status === 'In progress' || nj.status === 'Done') && !nj.workDate) nj.workDate = today();
+      if (putJob(nj)){ toast(clientOf(j).name + ': ' + nj.status + '.' + (nj.status === 'Done' ? ' Open the job to share the CCTV card.' : '')); render(); }
+      return;
+    }
+    if (act === 'followed' && j){ var fj = clone(j); fj.followUp = ''; if (putJob(fj)){ toast('Follow-up cleared.'); render(); } return; }
+    if (act === 'del-pay'){ armed(b, 'Tap again to remove', function(){ var pj = state.jobs.find(function(x){ return x.id === id; }); if (!pj) return; var n2 = clone(pj); n2.payments = (n2.payments || []).filter(function(p){ return p.id !== b.dataset.pid; }); if (putJob(n2)){ toast('Payment removed.'); render(); renderSheet(); } }); return; }
+    if (act === 'del-job'){ armed(b, 'Tap again to delete', function(){ if (removeJob(id)){ toast('Job deleted.'); render(); closeSheet(); } }); return; }
+    if (act === 'del-client'){ armed(b, 'Tap again to delete', function(){ if (removeClient(id)){ toast('Client deleted.'); render(); closeSheet(); } }); return; }
+    if (state.sheet && state.sheet.mode === 'quote'){
+      var dq = state.sheet.draft;
+      if (act === 'kit'){ dq.items = KITS[b.dataset.kit].map(function(p){ return qItem(p[0], p[1]); }); if (!dq.title) dq.title = b.dataset.kit; var qt = $('qTitle'); if (qt && !qt.value) qt.value = dq.title; renderQItems(); renderQTotals(); return; }
+      if (act === 'qadd'){ var it = b.dataset.item ? qItem(b.dataset.item, 1) : { uid:uid('i'), desc:'', qty:'1', unit:'Nos', rate:'', gst:'18' }; dq.items.push(it); renderQItems(); renderQTotals(); var f = $('qi-' + (b.dataset.item ? 'q' : 'd') + '-' + it.uid); if (f){ f.scrollIntoView({ block:'center' }); f.focus(); } return; }
+      if (act === 'qrm'){ dq.items = dq.items.filter(function(i){ return i.uid !== b.dataset.qi; }); renderQItems(); renderQTotals(); return; }
+      if (act === 'q-save'){ saveQuote(); return; }
+      if (act === 'q-text'){ var c0 = calcQuote(dq); if (!printable(c0).length){ toast('Add at least one item first.'); return; } var cl = draftClient(dq); openWa(cl.phone, quoteText(dq, cl)); return; }
+      if (act === 'q-pdf'){
+        if (!window.jspdf){ toast('The PDF maker needs the internet once. Connect, reopen the app, then try again.'); return; }
+        var saved = saveQuote(); if (!saved) return;
+        b.disabled = true;
+        try { var doc = await buildPdf(saved.quote, clientOf(saved)); await shareFile(doc.output('blob'), 'Quotation-' + safeName(saved.quoteNo) + '-' + safeName(clientOf(saved).name) + '.pdf', 'Quotation ' + saved.quoteNo + ' from ' + biz().name); }
+        catch(err){ toast('Could not make the PDF. Try again.'); }
+        b.disabled = false; return;
+      }
+    }
+  });
+  document.addEventListener('submit', function(e){
+    if (e.target.id === 'clientForm') saveClientForm(e);
+    else if (e.target.id === 'jobForm') saveJobForm(e);
+    else if (e.target.id === 'settingsForm') saveSettingsForm(e);
+  });
+  document.addEventListener('input', function(e){
+    var t = e.target;
+    if (t.id === 'q'){ state.q = t.value; var pos = t.selectionStart; render(true); var q = $('q'); if (q){ q.focus(); try { q.setSelectionRange(pos, pos); } catch(_){} } return; }
+    if (state.sheet && state.sheet.mode === 'quote'){
+      var d = state.sheet.draft;
+      if (t.dataset.qi){ var it = d.items.find(function(i){ return i.uid === t.dataset.qi; }); if (it){ it[t.dataset.k] = t.value; renderQTotals(); } return; }
+      var map = { qTitle:'title', qNo:'no', qDate:'date', qValid:'validDays', qDisc:'discount', qTerms:'terms', qNcName:'ncName', qNcPhone:'ncPhone' };
+      if (map[t.id]){ d[map[t.id]] = t.value; if (t.id === 'qDisc') renderQTotals(); }
+    }
+  });
+  document.addEventListener('change', function(e){
+    var t = e.target;
+    if (t.id === 'restoreFile'){ onRestoreFile(t.files && t.files[0]); return; }
+    if (t.id === 'sf'){ state.statusFilter = t.value; render(true); }
+    if (t.id === 'jfClient'){ $('jfNew').hidden = t.value !== '__new'; }
+    if (state.sheet && state.sheet.mode === 'quote'){
+      var d = state.sheet.draft;
+      if (t.id === 'qClient'){ d.clientId = t.value; $('qNew').hidden = t.value !== '__new'; }
+      if (t.id === 'qInter'){ d.interstate = t.checked; renderQTotals(); }
+      if (t.id === 'qGst'){ d.withGst = t.checked; $('sheetBody').classList.toggle('no-gst', !d.withGst); $('qGstWarn').hidden = !(d.withGst && !biz().gstin); renderQTotals(); }
+      if (t.dataset.qi && t.tagName === 'SELECT'){ var it = d.items.find(function(i){ return i.uid === t.dataset.qi; }); if (it) it.unit = t.value; }
+    }
+  });
+  $('sheet').addEventListener('cancel', function(e){ e.preventDefault(); closeSheet(); });
+  $('sheet').addEventListener('click', function(e){ if (e.target === $('sheet')) closeSheet(); });
+  window.addEventListener('beforeinstallprompt', function(e){ e.preventDefault(); installEvt = e; if (state.view === 'today') render(true); });
+  window.addEventListener('appinstalled', function(){ installEvt = null; toast('DN Office is installed. Open it from your home screen.'); if (state.view === 'today') render(true); });
+  window.__dn = { state:state, calcQuote:calcQuote, buildPdf:buildPdf, buildCard:buildCard, backupData:backupData };
+
+  /* ---------- start ---------- */
+  load();
+  var params = new URLSearchParams(location.search);
+  if (params.get('tab') === 'money'){ state.view = 'jobs'; state.jobsTab = 'money'; }
+  render(true);
+  if (state.view !== 'today') guard();
+  if (params.get('new') === 'quote') openSheet({ mode:'quote', draft:newDraft('') });
+  if (location.search) history.replaceState(history.state, '', location.pathname);
+  if (NATIVE) state.persisted = true;
+  else if (navigator.storage && navigator.storage.persist){
+    navigator.storage.persisted().then(function(p){ return p || navigator.storage.persist(); }).then(function(p){ state.persisted = !!p; if (state.view === 'settings') render(true); }).catch(function(){ state.persisted = false; });
+  } else state.persisted = false;
+  if (!NATIVE && 'serviceWorker' in navigator && location.protocol !== 'file:'){
+    window.addEventListener('load', function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); });
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="navy">#FF0A1F44</color>
+    <color name="navy_night">#FF0B1830</color>
+    <color name="surface_night">#FF0E1C33</color>
+    <color name="white">#FFFFFFFF</color>
+</resources>
