@@ -45,11 +45,16 @@ cp "$B/base.apk" "$B/unaligned.apk"
 (cd "$B/dex" && zip -q -X "$B/unaligned.apk" classes.dex)
 "$BT/zipalign" -f -p 4 "$B/unaligned.apk" "$OUT/dn-office-unsigned.apk"
 
-echo "== 5. Test-signed copy for the emulator, and the signing tool"
+echo "== 5. Debuggable, test-signed copy for the emulator check, and the signing tool"
+"$BT/aapt2" link -o "$B/base-test.apk" -I "$JAR" --manifest AndroidManifest.xml -A "$B/assets" --debug-mode \
+  --min-sdk-version 23 --target-sdk-version 34 \
+  --version-code "$VERSION_CODE" --version-name "$VERSION_NAME" "$B/res/compiled.zip"
+(cd "$B/dex" && zip -q -X "$B/base-test.apk" classes.dex)
+"$BT/zipalign" -f -p 4 "$B/base-test.apk" "$B/aligned-test.apk"
 keytool -genkeypair -keystore "$B/test.jks" -storetype PKCS12 -storepass testpass -keypass testpass -alias test \
   -keyalg RSA -keysize 2048 -validity 365 -dname "CN=DN Office test" -noprompt
 "$BT/apksigner" sign --ks "$B/test.jks" --ks-pass pass:testpass --key-pass pass:testpass \
-  --out "$OUT/dn-office-test.apk" "$OUT/dn-office-unsigned.apk"
+  --out "$OUT/dn-office-test.apk" "$B/aligned-test.apk"
 "$BT/apksigner" verify --verbose "$OUT/dn-office-test.apk"
 cp "$BT/lib/apksigner.jar" "$OUT/apksigner.jar"
 "$BT/aapt2" dump badging "$OUT/dn-office-test.apk" | head -n 25
