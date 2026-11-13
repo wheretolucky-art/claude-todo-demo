@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>A Little Place Called Us</title>
+  <meta name="description" content="Some memories deserve a little place of their own.">
+
+  <!-- A private gift: keep it out of search engines and archives. -->
+  <meta name="robots" content="noindex, nofollow, noarchive, noimageindex">
+  <meta name="referrer" content="no-referrer">
+  <meta name="theme-color" content="#17263D">
+
+  <!-- Link preview (WhatsApp). Carries no photographs and no names. -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="A Little Place Called Us">
+  <meta property="og:description" content="Some memories deserve a little place of their own.">
+  <meta property="og:image" content="https://wheretolucky-art.github.io/claude-todo-demo/us/og.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="assets/fonts/cormorant-garamond-latin-500-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/cormorant-garamond-latin-400-italic.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body class="is-closed">
+
+  <!-- Chapter 01 · the cover -->
+  <div class="cover" id="cover">
+    <div class="cover__board">
+      <div class="cover__frame" aria-hidden="true"></div>
+
+      <p class="cover__prelude" aria-hidden="true">Some memories deserve<br>a little place of their own.</p>
+
+      <div class="cover__main">
+        <svg class="tulip cover__tulip" viewBox="0 0 60 104" aria-hidden="true">
+          <path class="tulip__bloom" d="M30 44C20 44 13 36 13 26c0-5 1.5-9 3.5-13 3 2.5 5.5 5.5 7 9C25 16 27 10 30 6c3 4 5 10 6.5 16 1.5-3.5 4-6.5 7-9 2 4 3.5 8 3.5 13 0 10-7 18-17 18z"/>
+          <path class="tulip__stem" d="M30 44c0 18-1.5 38 0 56"/>
+          <path class="tulip__leaf" d="M30 86c-9-2-15-9-17-20 8 3 15 9 17 20z"/>
+          <path class="tulip__leaf" d="M30 76c8-3 13-9 14-18-7 3-13 8-14 18z"/>
+        </svg>
+
+        <h1 class="cover__title">
+          <span class="cover__line">A Little Place</span>
+          <span class="cover__line cover__line--em">Called Us</span>
+        </h1>
+
+        <p class="cover__for" id="coverFor" aria-hidden="true"></p>
+
+        <p class="cover__sub">Made with memories, a little nostalgia,<br>and a lot of gratitude.</p>
+
+        <div class="cover__action">
+          <button class="cover__open" id="openBook" type="button" hidden>
+            <span>Open your little book</span>
+          </button>
+
+          <p class="cover__wait" id="coverWait" role="status">&nbsp;</p>
+
+          <form class="cover__lock" id="lock" hidden novalidate>
+            <p class="cover__lock-msg" id="lockMsg">This little book opens with the link it was sent with.</p>
+            <label class="sr-only" for="lockKey">Paste the full link or the key</label>
+            <div class="cover__lock-row">
+              <input id="lockKey" name="key" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste the link here">
+              <button type="submit">Open</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Running head: where you are, and the music switch -->
+  <header class="chrome" id="chrome" hidden>
+    <div class="chrome__bar" aria-hidden="true"><span id="progress"></span></div>
+    <p class="chrome__where" id="where" aria-live="polite"></p>
+    <button class="music" id="music" type="button" aria-pressed="false" aria-label="Music">
+      <span class="music__bars" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span class="music__label" id="musicLabel">Music off</span>
+    </button>
+  </header>
+
+  <main id="pages" hidden></main>
+
+  <!-- Photograph viewer -->
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Photograph" hidden>
+    <button class="lightbox__close" type="button" aria-label="Close photograph">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5l14 14M19 5L5 19"/></svg>
+    </button>
+    <button class="lightbox__nav lightbox__nav--prev" type="button" aria-label="Previous photograph">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4l-8 8 8 8"/></svg>
+    </button>
+    <figure class="lightbox__card">
+      <img id="lightboxImg" alt="">
+      <figcaption id="lightboxCap"></figcaption>
+    </figure>
+    <button class="lightbox__nav lightbox__nav--next" type="button" aria-label="Next photograph">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4l8 8-8 8"/></svg>
+    </button>
+    <p class="lightbox__count" id="lightboxCount" aria-live="polite"></p>
+  </div>
+
+  <noscript>
+    <p class="noscript">This little book needs JavaScript switched on to open.</p>
+  </noscript>
+
+  <script type="module" src="assets/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,4 @@
+# Plaintext photos, letters and the key never go into this public repo.
+/private/
+node_modules/
+.DS_Store
