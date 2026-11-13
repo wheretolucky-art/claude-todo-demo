@@ -54,7 +54,11 @@ async function unseal(key) {
   }
 
   // Keep the key in the address so a refresh still opens the book.
-  if (parseKey(location.hash) !== key) history.replaceState(null, "", "#" + key);
+  try {
+    if (parseKey(location.hash) !== key) history.replaceState(null, "", "#" + key);
+  } catch {
+    // Some file viewers refuse to change the address; the book still opens.
+  }
 
   pages.innerHTML = render(content);
 

@@ -15,14 +15,24 @@ function fromBase64Url(text) {
   return Uint8Array.from(bin, (ch) => ch.charCodeAt(0));
 }
 
+// A single-file build carries the sealed pack inside the page itself.
+async function sealedBytes(file, base) {
+  const inline = globalThis.__US_PACK;
+  if (inline) {
+    if (!inline[file]) throw new Error("missing " + file);
+    return Uint8Array.from(atob(inline[file]), (ch) => ch.charCodeAt(0));
+  }
+  const res = await fetch(base + file);
+  if (!res.ok) throw new Error("missing " + file);
+  return new Uint8Array(await res.arrayBuffer());
+}
+
 export async function openVault(keyText, base = "pack/") {
   if (!globalThis.crypto?.subtle) throw new Error("insecure-context");
   const key = await crypto.subtle.importKey("raw", fromBase64Url(keyText), "AES-GCM", false, ["decrypt"]);
 
   async function open(file) {
-    const res = await fetch(base + file);
-    if (!res.ok) throw new Error("missing " + file);
-    const sealed = new Uint8Array(await res.arrayBuffer());
+    const sealed = await sealedBytes(file, base);
     const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: sealed.subarray(0, 12) }, key, sealed.subarray(12));
     return new Uint8Array(plain);
   }
