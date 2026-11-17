@@ -1,0 +1,2 @@
+streamlink>=7.0
+faster-whisper>=1.0

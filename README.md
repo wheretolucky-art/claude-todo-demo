@@ -7,6 +7,8 @@ Small static pages, served by GitHub Pages straight from `main`.
 | Humdard | `/humdard/` |
 | A Little Place Called Us | `/us/` — opens only with its private link |
 
+Also here: [`autoclip/`](autoclip/), a command-line tool (not a page) that clips live streams into vertical shorts.
+
 ## A Little Place Called Us (`us/`)
 
 A small interactive memory book in six chapters: a cover, a handful of
