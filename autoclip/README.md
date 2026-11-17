@@ -1,6 +1,58 @@
 # autoclip
 
-Clips a stream automatically while it is live. It records the stream, watches
+Clips a stream automatically while it is live.
+
+## The dashboard
+
+```bash
+python -m autoclip web
+```
+
+That opens **http://localhost:8765**, a website that runs on your own computer
+and nowhere else. It has four pages:
+
+- **Agents**: your clipping crew. Each agent shows what it is doing right now,
+  next to a live activity feed.
+  - **Scouts** watch live streams and chat and spot the moments. Send one to
+    any channel from this page.
+  - **Editor** cuts each moment and reframes it.
+  - **Captioner** writes word-by-word captions with Whisper.
+  - **Producer** scores each clip and writes its hook, title, post caption and
+    hashtags.
+  - **Publisher** keeps the posting queue and the proof log.
+- **Clip Generator**: paste a YouTube, Twitch or Kick video link, or drop a
+  video file, and pick the settings: Ratio, Clips, Hook, Subs, Auto Edit,
+  Layout.
+- **Clips**: every clip with its score. Keep it or throw it out, then open it
+  for the tools:
+  - **Auto Edit** cuts long pauses and "um"s between speech. The action
+    before the first word and after the last is left alone.
+  - **Subtitles** turns the word-by-word captions on or off and sets their
+    highlight colour.
+  - **Viral Hook** puts a title over the first 3.5 seconds. Edit it yourself or
+    have the Producer rewrite it.
+  - **Voiceover** records your voice with your mic while the clip plays. The
+    stream audio ducks under you. This is what makes a clip yours and not a
+    repost.
+  - **Shape** (9:16, 1:1 or 16:9) and **layout** (full frame on blur, crop, or
+    cam on top).
+  - **Approve for posting** saves the title, caption and hashtags to
+    `post.txt`. **Mark as posted** logs the link. Every step goes into the
+    clip's proof log.
+- **Settings**: your Claude API key (optional), the Whisper model, and
+  **streamer permissions**. Save each streamer's "yes, you can clip me" here.
+  The Publisher warns you before you approve a clip from a channel without one.
+
+**Claude is optional.** With an API key (Settings, or `ANTHROPIC_API_KEY`), the
+Producer uses Claude (`claude-opus-5-5`) to score clips and write hooks from the
+transcript and chat. Without a key, simple rules do it and the tool costs
+nothing.
+
+**Nothing is posted automatically.** You download the short and post it
+yourself. The dashboard only listens on `127.0.0.1` and ignores requests from
+other websites.
+
+## Command line It records the stream, watches
 chat, and when chat suddenly explodes ("KEKW", "NO WAY", "CLIP IT") it cuts the
 30 seconds around that moment into a vertical 9:16 short with burned-in,
 word-by-word captions.
@@ -18,7 +70,8 @@ Everything it uses is free and runs on your own computer:
 
 ## Install (once)
 
-You need **Python 3.10+** and **ffmpeg**.
+You need **Python 3.10+** and **ffmpeg**. `yt-dlp` (in requirements) downloads
+finished VODs from YouTube, Twitch and Kick.
 
 ```bash
 # ffmpeg
@@ -83,11 +136,15 @@ clips/kaicenat/2026-11-19_1800/
   chat.jsonl              every chat message, with time
   segments/               rolling raw recording (last 30 min only)
   1-42-10_x6.3_chat/      one folder per moment: time, how many times normal, signal
-    short.mp4             the 9:16 short, ready to post
+    short.mp4             the finished short, ready to post
     raw.mp4               the same moment, original size, no captions
+    clip.json             score, hook, title, caption, status, options, proof log
+    words.json            every spoken word with its timing
     captions.ass          the captions, editable
     transcript.txt        what was said
     moment.json           the spike: score, normal level, sample chat messages
+    post.txt              title, caption and hashtags, once approved
+    voice.wav             your voiceover, if you recorded one
 ```
 
 ## Layouts
@@ -115,6 +172,10 @@ example `3`). If you get none, lower `--ratio` or `--min-score`.
 | `--keep-minutes` | 30 | raw recording kept on disk; `0` keeps the whole stream |
 | `--whisper-model` | small | `tiny`/`base` are faster, `medium`/`large-v3` more accurate |
 | `--no-captions` | | skip captions |
+| `--aspect` | 9:16 | `9:16`, `1:1` or `16:9` |
+| `--auto-edit` | off | cut long pauses and filler words between speech |
+| `--no-hook` | | no hook title over the first seconds |
+| `--color` | yellow | caption highlight: yellow, green, pink, cyan |
 
 ## Before you post
 

@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Callable
 
-from . import captions, media
+from . import bus, captions, media, studio
 from .chat import TwitchChat, channel_from_url, load_chat_log
 from .spikes import ChatBuckets, DetectorSettings, Spike, SpikeDetector, merge_windows
 
@@ -29,6 +29,15 @@ class ClipSettings:
     whisper_model: str = "small"
     language: str | None = None
     font: str = "Arial"
+    ratio: str = "9:16"
+    hook: bool = True               # show the Producer's hook at the top for the first seconds
+    autoedit: bool = False          # cut long pauses and filler words between speech
+    color: str = "yellow"           # caption highlight colour
+
+    def options(self) -> dict:
+        return {"layout": self.layout, "facecam": list(self.facecam) if self.facecam else None,
+                "captions": self.captions, "ratio": self.ratio, "hook_on": self.hook,
+                "autoedit": self.autoedit, "color": self.color, "font": self.font, "voiceover": False}
 
 
 def hms(seconds: float) -> str:
@@ -37,25 +46,35 @@ def hms(seconds: float) -> str:
 
 def make_clip(cut: Callable[[float, float, Path], Path], a: float, b: float,
               spikes: list[Spike], out_root: Path, cs: ClipSettings,
-              wall_start: float | None = None) -> Path:
-    """Cut [a, b], caption it, render the 9:16 short, and write what was found."""
+              wall_start: float | None = None, channel: str = "stream") -> Path:
+    """Editor cuts [a, b], Captioner transcribes, Producer scores, Editor renders the short."""
     best = max(spikes, key=lambda s: s.ratio)
     folder = out_root / f"{hms(a).replace(':', '-')}_x{min(best.ratio, 99):.1f}_{best.source}"
     folder.mkdir(parents=True, exist_ok=True)
-    raw = cut(a, b, folder / "raw.mp4")
-    ass = None
+    cid = folder.name
+    with studio.EDIT_LOCK, bus.working("Editor", f"cutting {channel} {hms(a)}-{hms(b)}", cid):
+        raw = cut(a, b, folder / "raw.mp4")
+    words = []
     if cs.captions:
-        words = captions.transcribe(raw, cs.whisper_model, cs.language)
-        if words:
-            ass = captions.write_ass(words, folder / "captions.ass", media.caption_y(cs.layout), cs.font)
-            (folder / "transcript.txt").write_text(" ".join(w.text for w in words) + "\n", encoding="utf-8")
-    short = media.render_vertical(raw, folder / "short.mp4", cs.layout, ass, cs.facecam)
+        with bus.working("Captioner", f"transcribing {channel} {hms(a)}", cid):
+            words = captions.transcribe(raw, cs.whisper_model, cs.language)
+        if not words:
+            bus.say("Captioner", "no speech found (or Whisper is not installed)", cid)
+    studio.save_words(folder, words)
+    (folder / "transcript.txt").write_text(" ".join(w.text for w in words) + "\n", encoding="utf-8")
+    recorded_at = datetime.fromtimestamp(wall_start + a).isoformat(timespec="seconds") if wall_start else None
     meta = {
         "from": hms(a), "to": hms(b), "start_seconds": round(a, 2), "end_seconds": round(b, 2),
-        "recorded_at": datetime.fromtimestamp(wall_start + a).isoformat(timespec="seconds") if wall_start else None,
+        "recorded_at": recorded_at,
         "spikes": [{**asdict(s), "ratio": round(s.ratio, 2)} for s in spikes],
     }
     (folder / "moment.json").write_text(json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8")
+    state = studio.new_state(folder, channel, a, b, spikes, cs.options(), recorded_at)
+    studio.save(folder, state)
+    studio.run_producer(folder, state)
+    studio.save(folder, state)
+    studio.render(folder)
+    short = folder / "short.mp4"
     log.info("clip ready: %s", short)
     return short
 
@@ -82,6 +101,19 @@ class LiveClipper:
         self._lock = threading.Lock()
         self._pending: list[tuple[float, float, list[Spike]]] = []
         self._jobs: queue.Queue = queue.Queue()
+        self.stop_event = threading.Event()
+        self.state = "starting"       # waiting / recording / stopped / error
+        self.spikes = 0
+        self.recording_since: float | None = None
+        self.error: str | None = None
+
+    def stop(self) -> None:
+        self.stop_event.set()
+
+    def status(self) -> dict:
+        return {"channel": self.name, "url": self.url, "state": self.state, "spikes": self.spikes,
+                "clips": self.made, "signals": sorted(self.signals), "error": self.error,
+                "recording_since": self.recording_since, "pending": len(self._pending)}
 
     # -- signal handling
 
@@ -97,6 +129,9 @@ class LiveClipper:
             else:
                 self._pending.append((a, b, [spike]))
                 self.rec.pin(a, b)
+        self.spikes += 1
+        bus.say("Scout", f"{self.name}: {spike.source} spike at {hms(spike.start)} "
+                         f"({spike.ratio:.1f}x normal)" + (f' - "{spike.sample[0]}"' if spike.sample else ""))
         log.info("SPIKE at %s (%s, %.1fx normal, score %.0f)%s", hms(spike.start), spike.source,
                  spike.ratio, spike.score, f": {spike.sample[:3]}" if spike.sample else "")
 
@@ -119,7 +154,7 @@ class LiveClipper:
                 return
             a, b, spikes = job
             try:
-                make_clip(self.rec.cut, a, b, spikes, self.session_dir, self.cs, self.rec.started_at)
+                make_clip(self.rec.cut, a, b, spikes, self.session_dir, self.cs, self.rec.started_at, self.name)
             except Exception as e:  # one bad clip must not stop the recording
                 log.error("could not make clip %s-%s: %s", hms(a), hms(b), e)
             finally:
@@ -128,21 +163,33 @@ class LiveClipper:
     # -- main loop
 
     def run(self, wait: bool = True, forever: bool = False) -> None:
-        while True:
-            if wait:
-                self._wait_until_live()
-            self._run_once()
-            if not forever or (self.max_clips and self.made >= self.max_clips):
-                return
-            log.info("stream ended; waiting for the next one")
+        try:
+            while not self.stop_event.is_set():
+                if wait and not self._wait_until_live():
+                    break
+                self._run_once()
+                if not forever or (self.max_clips and self.made >= self.max_clips):
+                    break
+                bus.say("Scout", f"{self.name}: stream ended; waiting for the next one")
+        except Exception as e:
+            self.state, self.error = "error", str(e)[-300:]
+            bus.say("Scout", f"{self.name}: {e}", level="error")
+            raise
+        if self.state != "error":
+            self.state = "stopped"
 
-    def _wait_until_live(self) -> None:
+    def _wait_until_live(self) -> bool:
+        """Block until the channel is live. False if stopped while waiting."""
+        self.state = "waiting"
         announced = False
         while not media.is_live(self.url):
             if not announced:
+                bus.say("Scout", f"{self.name} is offline; checking every 30 seconds")
                 log.info("%s is offline; checking every 30 seconds", self.url)
                 announced = True
-            time.sleep(30)
+            if self.stop_event.wait(30):
+                return False
+        return True
 
     def _run_once(self) -> None:
         self.session_dir = self.out_dir / self.name / datetime.now().strftime("%Y-%m-%d_%H%M")
@@ -154,6 +201,9 @@ class LiveClipper:
         self.audio_det = SpikeDetector(self.ds, "audio")
         self._pending = []
         self.rec.start()
+        self.state, self.recording_since = "recording", self.rec.started_at
+        bus.say("Scout", f"{self.name} is live: recording and watching "
+                         + " + ".join("chat" if s == "chat" else "loudness" for s in sorted(self.signals)))
         (self.session_dir / "recording.json").write_text(json.dumps(
             {"url": self.url, "started_at": self.rec.started_at, "signals": sorted(self.signals)}, indent=2))
         chat = None
@@ -165,7 +215,7 @@ class LiveClipper:
         audio_done = float("-inf")  # start time of the last piece measured
         log.info("watching for spikes; clips go to %s (Ctrl-C to stop)", self.session_dir)
         try:
-            while self.rec.running():
+            while self.rec.running() and not self.stop_event.is_set():
                 time.sleep(1)
                 now = time.time() - self.rec.started_at - self.chat_delay
                 if chat:
@@ -234,23 +284,44 @@ def find_moments_vod(video: Path, ds: DetectorSettings, chat_path: Path | None) 
     return spikes
 
 
+def download(source: str, folder: Path) -> tuple[Path, str]:
+    """Fetch a VOD link. yt-dlp handles YouTube, Twitch and Kick videos; streamlink is the fallback."""
+    import shutil
+    folder.mkdir(parents=True, exist_ok=True)
+    name = source.rstrip("/").rsplit("/", 1)[-1].split("?")[0][:60] or "video"
+    if shutil.which("yt-dlp"):
+        res = media.run(["yt-dlp", "--no-playlist", "-f", "bv*[height<=1080]+ba/b[height<=1080]/b",
+                         "--merge-output-format", "mp4", "-o", str(folder / "%(uploader)s - %(id)s.%(ext)s"),
+                         "--print", "after_move:filepath", source])
+        path = Path(res.stdout.strip().splitlines()[-1])
+        uploader = path.stem.split(" - ")[0]
+        return path, uploader or name
+    media.need("streamlink")
+    video = folder / f"{name}.ts"
+    if not video.exists():
+        media.run(["streamlink", "--force", "-o", str(video), source, "best"])
+    return video, name
+
+
 def clip_vod(source: str, out_dir: Path, cs: ClipSettings, ds: DetectorSettings,
-             chat_path: Path | None = None, max_clips: int = 15, dry_run: bool = False) -> list[Path]:
+             chat_path: Path | None = None, max_clips: int = 15, dry_run: bool = False,
+             channel: str | None = None, progress: Callable[[str, float], None] | None = None) -> list[Path]:
+    report = progress or (lambda text, frac: None)
     video = Path(source)
     name = video.stem
     if not video.exists():  # a link: download it first
-        media.need("streamlink")
-        name = source.rstrip("/").rsplit("/", 1)[-1]
-        video = out_dir / "downloads" / f"{name}.ts"
-        video.parent.mkdir(parents=True, exist_ok=True)
-        if not video.exists():
-            log.info("downloading %s", source)
-            media.run(["streamlink", "--force", "-o", str(video), source, "best"])
-    spikes = find_moments_vod(video, ds, chat_path)
+        report("downloading", 0.02)
+        with bus.working("Scout", f"downloading {source}"):
+            video, name = download(source, out_dir / "downloads")
+    name = channel or name
+    report("finding moments", 0.15)
+    with bus.working("Scout", f"scanning {name} for moments using " + ("chat" if chat_path else "loudness")):
+        spikes = find_moments_vod(video, ds, chat_path)
     spikes.sort(key=lambda s: s.ratio, reverse=True)
     spikes = sorted(spikes[:max_clips], key=lambda s: s.start)
     length = media.duration(video)
     log.info("found %d moments in %s", len(spikes), hms(length))
+    bus.say("Scout", f"found {len(spikes)} moments in {hms(length)} of {name}")
     for s in spikes:
         log.info("  %s  %s %.1fx  %s", hms(s.start), s.source, s.ratio, " | ".join(s.sample[:3]))
     if dry_run:
@@ -259,11 +330,14 @@ def clip_vod(source: str, out_dir: Path, cs: ClipSettings, ds: DetectorSettings,
     session = out_dir / name
     windows = merge_windows([(max(s.start - cs.pre, 0), min(s.start + cs.post, length)) for s in spikes])
     made = []
-    for a, b in windows:
+    for i, (a, b) in enumerate(windows):
+        report(f"making clip {i + 1} of {len(windows)}", 0.2 + 0.8 * i / max(len(windows), 1))
         inside = [s for s in spikes if a <= s.start <= b] or spikes[:1]
         try:
             made.append(make_clip(lambda x, y, out: media.cut_file(video, x, y - x, out),
-                                  a, b, inside, session, cs))
+                                  a, b, inside, session, cs, channel=name))
         except Exception as e:
             log.error("could not make clip %s-%s: %s", hms(a), hms(b), e)
+            bus.say("Editor", f"could not make clip {hms(a)}-{hms(b)}: {e}", level="error")
+    report("done", 1.0)
     return made

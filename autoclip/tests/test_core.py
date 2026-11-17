@@ -80,3 +80,44 @@ def test_captions_chunk_and_ass(tmp_path):
     assert text.count("Dialogue:") == 5
     assert "\\pos(540,1450)" in text and "NO WAY BRO." in text.replace("{\\r}", "").replace(
         "{\\c&H0000E5FF&\\fscx112\\fscy112}", "")
+
+
+# ---------------------------------------------------------------- studio / producer
+
+from autoclip import producer, studio  # noqa: E402
+
+
+def W(t, text, d=0.3):
+    return Word(t, t + d, text)
+
+
+def test_autoedit_cuts_pause_and_filler_but_keeps_head_and_tail():
+    words = [W(2.0, "no"), W(2.4, "way"), W(2.8, "um"), W(9.0, "chat"), W(9.4, "crazy")]
+    keep = studio.autoedit_keep(words, 30.0)
+    assert keep == [(0.0, 2.95), (8.75, 30.0)]  # 0-2s action kept, "um" and the pause cut, tail kept
+    moved = studio.remap_words(words, keep)
+    assert [w.text for w in moved] == ["no", "way", "chat", "crazy"]
+    assert abs(moved[2].start - (2.95 + 0.25)) < 1e-6
+
+
+def test_autoedit_leaves_tight_speech_alone():
+    words = [W(1.0 + i * 0.4, "word") for i in range(10)]
+    assert studio.autoedit_keep(words, 20.0) is None
+
+
+def test_heuristic_pitch_uses_chat():
+    p = producer.heuristic("Some Streamer", "", ["NO WAY", "no way", "KEKW", "lol"], 4.0)
+    assert p.hook == 'CHAT: "NO WAY"'
+    assert p.score == producer.base_score(4.0) == 76
+    assert "somestreamer" in p.hashtags
+
+
+def test_permission_required_to_approve(tmp_path):
+    import pytest
+    (tmp_path / "clip.json").write_text(json.dumps({"channel": "Someone", "status": "kept", "options": {},
+                                                    "title": "t", "caption": "c", "hashtags": ["a"]}))
+    with pytest.raises(PermissionError):
+        studio.apply(tmp_path, "approve", {}, {})
+    st = studio.apply(tmp_path, "approve", {}, {"someone": {"allowed": True}})
+    assert st["status"] == "approved"
+    assert (tmp_path / "post.txt").read_text().startswith("t\n\nc\n\n#a")

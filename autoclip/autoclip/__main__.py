@@ -2,6 +2,7 @@
 
   python -m autoclip live  <twitch channel or stream URL>
   python -m autoclip vod   <video file or VOD URL> [--chat chat.json]
+  python -m autoclip web                 the dashboard, at http://localhost:8765
 """
 
 from __future__ import annotations
@@ -34,6 +35,11 @@ def common(p: argparse.ArgumentParser) -> None:
     g.add_argument("--whisper-model", default="small", help="tiny, base, small, medium, large-v3 (default small)")
     g.add_argument("--language", help="spoken language code, e.g. en (default: detect)")
     g.add_argument("--font", default="Arial", help="caption font (default Arial)")
+    g.add_argument("--aspect", choices=["9:16", "1:1", "16:9"], default="9:16", help="output shape (default 9:16)")
+    g.add_argument("--no-hook", action="store_true", help="no hook title over the first seconds")
+    g.add_argument("--auto-edit", action="store_true", help="cut long pauses and filler words between speech")
+    g.add_argument("--color", default="yellow", choices=["yellow", "green", "pink", "cyan"],
+                   help="caption highlight colour (default yellow)")
     d = p.add_argument_group("spike detection")
     d.add_argument("--bucket", type=float, default=10, help="seconds per counting window (default 10)")
     d.add_argument("--ratio", type=float, default=2.0, help="how many times normal counts as a spike (default 2.0)")
@@ -46,7 +52,8 @@ def common(p: argparse.ArgumentParser) -> None:
 def settings(a) -> tuple[ClipSettings, DetectorSettings]:
     if a.layout == "facecam" and not a.facecam:
         raise SystemExit("--layout facecam needs --facecam x,y,w,h (e.g. 0.75,0.7,0.25,0.3 for bottom-right)")
-    cs = ClipSettings(a.pre, a.post, a.layout, a.facecam, not a.no_captions, a.whisper_model, a.language, a.font)
+    cs = ClipSettings(a.pre, a.post, a.layout, a.facecam, not a.no_captions, a.whisper_model, a.language, a.font,
+                      a.aspect, not a.no_hook, a.auto_edit, a.color)
     ds = DetectorSettings(bucket=a.bucket, ratio=a.ratio, z=a.z, min_score=a.min_score, cooldown=a.cooldown)
     return cs, ds
 
@@ -77,12 +84,23 @@ def main(argv: list[str] | None = None) -> None:
                           "Without it, loudness is used")
     vod.add_argument("--max-clips", type=int, default=15, help="keep the best N moments (default 15)")
     vod.add_argument("--dry-run", action="store_true", help="only list the moments, make no clips")
+    vod.add_argument("--channel", help="streamer name to use for titles and the output folder")
     common(vod)
+
+    web = sub.add_parser("web", help="open the dashboard in your browser")
+    web.add_argument("-o", "--out", type=Path, default=Path("clips"), help="where clips go (default: ./clips)")
+    web.add_argument("--port", type=int, default=8765)
+    web.add_argument("--no-browser", action="store_true", help="don't open a browser tab")
+    web.add_argument("-v", "--verbose", action="store_true")
 
     a = ap.parse_args(argv)
     logging.basicConfig(level=logging.DEBUG if a.verbose else logging.INFO,
                         format="%(asctime)s  %(message)s", datefmt="%H:%M:%S")
     need("ffmpeg"); need("ffprobe")
+    if a.cmd == "web":
+        from .server import serve
+        serve(a.out, a.port, not a.no_browser)
+        return
     cs, ds = settings(a)
 
     if a.cmd == "live":
@@ -90,7 +108,7 @@ def main(argv: list[str] | None = None) -> None:
         LiveClipper(a.channel, a.out, cs, ds, signals, a.quality, a.keep_minutes,
                     a.chat_delay, a.max_clips).run(wait=not a.no_wait, forever=a.forever)
     else:
-        made = clip_vod(a.source, a.out, cs, ds, a.chat, a.max_clips, a.dry_run)
+        made = clip_vod(a.source, a.out, cs, ds, a.chat, a.max_clips, a.dry_run, a.channel)
         if not a.dry_run:
             print(f"\n{len(made)} clips made:")
             for m in made:

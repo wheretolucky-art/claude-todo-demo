@@ -14,7 +14,6 @@ from pathlib import Path
 
 log = logging.getLogger(__name__)
 
-W, H = 1080, 1920  # vertical output size
 
 
 def need(tool: str) -> str:
@@ -216,42 +215,90 @@ def cut_file(source: str | Path, start: float, length: float, out: Path) -> Path
 
 
 LAYOUTS = ("blur", "crop", "facecam")
+RATIOS = {"9:16": (1080, 1920), "1:1": (1080, 1080), "16:9": (1920, 1080)}
 
 
-def caption_y(layout: str) -> int:
-    """Where captions sit in the 1080x1920 frame for each layout."""
+def has_audio(path: Path) -> bool:
+    res = run(["ffprobe", "-v", "error", "-select_streams", "a", "-show_entries", "stream=index",
+               "-of", "csv=p=0", str(path)])
+    return bool(res.stdout.strip())
+
+
+def caption_y(layout: str, ratio: str = "9:16") -> int:
+    """Where captions sit in the frame for each layout."""
+    w, h = RATIOS[ratio]
+    if ratio != "9:16":
+        return int(h * 0.82)
     return {"blur": 1450, "crop": 1380, "facecam": 770}[layout]
 
 
-def vertical_filter(layout: str, facecam: tuple[float, float, float, float] | None) -> str:
-    if layout == "crop":
-        return f"[0:v]crop='min(iw,ih*9/16)':ih,scale={W}:{H},setsar=1[v]"
-    if layout == "facecam":
+def frame_filter(layout: str, facecam: tuple[float, float, float, float] | None,
+                 ratio: str = "9:16", src: str = "[0:v]") -> str:
+    w, h = RATIOS[ratio]
+    if layout == "facecam" and ratio == "9:16":
         if not facecam:
             raise ValueError("the facecam layout needs --facecam x,y,w,h")
-        x, y, w, h = facecam
-        top = int(H * 0.4)
+        x, y, fw, fh = facecam
+        top = int(h * 0.4)
         return (
-            f"[0:v]split[a][b];"
-            f"[a]crop=iw*{w}:ih*{h}:iw*{x}:ih*{y},"
-            f"scale={W}:{top}:force_original_aspect_ratio=increase,crop={W}:{top}[cam];"
-            f"[b]scale=-2:{H - top},crop={W}:{H - top}[game];"
+            f"{src}split[a][b];"
+            f"[a]crop=iw*{fw}:ih*{fh}:iw*{x}:ih*{y},"
+            f"scale={w}:{top}:force_original_aspect_ratio=increase,crop={w}:{top}[cam];"
+            f"[b]scale=-2:{h - top},crop={w}:{h - top}[game];"
             f"[cam][game]vstack,setsar=1[v]")
+    if layout == "crop":
+        return f"{src}scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h},setsar=1[v]"
     return (
-        f"[0:v]split[a][b];"
-        f"[a]scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},boxblur=30:3,eq=brightness=-0.08[bg];"
-        f"[b]scale={W}:-2[fg];"
+        f"{src}split[a][b];"
+        f"[a]scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h},boxblur=30:3,eq=brightness=-0.08[bg];"
+        f"[b]scale={w}:{h}:force_original_aspect_ratio=decrease[fg];"
         f"[bg][fg]overlay=(W-w)/2:(H-h)/2,setsar=1[v]")
+
+
+def render_short(raw: Path, out: Path, layout: str = "blur", subtitles: Path | None = None,
+                 facecam: tuple[float, float, float, float] | None = None, ratio: str = "9:16",
+                 keep: list[tuple[float, float]] | None = None) -> Path:
+    """Reframe `raw` to `ratio`, optionally keep only the `keep` time ranges, burn in subtitles."""
+    audio = has_audio(raw)
+    parts = []
+    src_v, src_a = "[0:v]", "[0:a]"
+    if keep:
+        expr = "+".join(f"between(t,{a:.3f},{b:.3f})" for a, b in keep)
+        parts.append(f"[0:v]select='{expr}',setpts=N/FRAME_RATE/TB[vk]")
+        src_v = "[vk]"
+        if audio:
+            parts.append(f"[0:a]aselect='{expr}',asetpts=N/SR/TB[ak]")
+            src_a = "[ak]"
+    graph = frame_filter(layout, facecam, ratio, src_v)
+    if subtitles:
+        # Run from the clip's folder so the subtitle path needs no escaping.
+        graph = graph[:-3] + f"[pre];[pre]ass={subtitles.name}[v]"
+    parts.append(graph)
+    amap = []
+    if audio:
+        amap = ["-map", src_a] if keep else ["-map", "0:a:0"]
+    run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", raw.name,
+         "-filter_complex", ";".join(parts), "-map", "[v]", *amap,
+         "-r", "30", "-c:v", "libx264", "-preset", "medium", "-crf", "20", "-pix_fmt", "yuv420p",
+         "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", out.name], cwd=raw.parent)
+    return out
 
 
 def render_vertical(raw: Path, out: Path, layout: str = "blur", subtitles: Path | None = None,
                     facecam: tuple[float, float, float, float] | None = None) -> Path:
-    graph = vertical_filter(layout, facecam)
-    if subtitles:
-        # Run from the clip's folder so the subtitle path needs no escaping.
-        graph = graph[:-3] + f"[pre];[pre]ass={subtitles.name}[v]"
-    run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", raw.name,
-         "-filter_complex", graph, "-map", "[v]", "-map", "0:a:0?",
-         "-r", "30", "-c:v", "libx264", "-preset", "medium", "-crf", "20", "-pix_fmt", "yuv420p",
-         "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", out.name], cwd=raw.parent)
+    return render_short(raw, out, layout, subtitles, facecam)
+
+
+def mix_voiceover(video: Path, voice: Path, out: Path, game_level: float = 0.35) -> Path:
+    """Lay your recorded voice over the clip; the stream audio ducks while you talk."""
+    if has_audio(video):
+        graph = (f"[1:a]aresample=48000,volume=1.6,apad,asplit[vo][key];"
+                 f"[0:a]aresample=48000,volume={game_level}[g];"
+                 f"[g][key]sidechaincompress=threshold=0.02:ratio=6:release=400[duck];"
+                 f"[duck][vo]amix=inputs=2:duration=first:normalize=0[a]")
+    else:
+        graph = "[1:a]aresample=48000,volume=1.6,apad[a]"
+    run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", str(video), "-i", str(voice),
+         "-filter_complex", graph, "-map", "0:v", "-map", "[a]", "-shortest",
+         "-c:v", "copy", "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", str(out)])
     return out

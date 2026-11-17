@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>autoclip</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23ffd25a'/%3E%3Cstop offset='1' stop-color='%23ff3d8b'/%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='16' cy='16' r='13' fill='url(%23g)'/%3E%3Crect x='3' y='18' width='26' height='2' fill='%23180b2e'/%3E%3Crect x='3' y='22' width='26' height='2.5' fill='%23180b2e'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="sky" aria-hidden="true"><div class="sun"></div><div class="grid"></div></div>
+
+<header class="top">
+  <a class="brand" href="#agents" aria-label="autoclip home">
+    <span class="logo" aria-hidden="true"></span>
+    <span>auto<b>clip</b></span>
+  </a>
+  <nav class="tabs" aria-label="Pages">
+    <a href="#agents" data-page="agents">Agents</a>
+    <a href="#generate" data-page="generate">Clip Generator</a>
+    <a href="#clips" data-page="clips">Clips <span class="count" id="clipCount"></span></a>
+    <a href="#settings" data-page="settings">Settings</a>
+  </nav>
+  <div class="ai-pill" id="aiPill" title="Who writes hooks and scores"></div>
+</header>
+
+<main>
+  <!-- AGENTS -->
+  <section class="page" id="page-agents">
+    <h1 class="title">Your clipping <em>crew</em></h1>
+    <p class="lede">Five agents split the work. Scouts watch streams and spot the moments, the Editor and Captioner make the short, the Producer scores it and writes the hook, and the Publisher keeps the posting queue. Nothing gets posted without your yes.</p>
+    <div class="team" id="team"></div>
+
+    <div class="cols">
+      <div class="panel">
+        <h2>Send a Scout to a live stream</h2>
+        <form id="scoutForm" class="form" autocomplete="off">
+          <label class="field wide">
+            <span>Twitch name or stream link</span>
+            <input name="channel" placeholder="kaicenat · or https://kick.com/… · or https://youtube.com/@…/live" required>
+          </label>
+          <div class="perm-warn" id="scoutPerm" hidden></div>
+          <label class="field">
+            <span>Spot moments using</span>
+            <select name="signal">
+              <option value="both">Chat + loudness</option>
+              <option value="chat">Chat only (Twitch)</option>
+              <option value="audio">Loudness only</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Sensitivity</span>
+            <select name="sensitivity">
+              <option value="3">Only big moments</option>
+              <option value="2" selected>Normal</option>
+              <option value="1.6">Catch more</option>
+            </select>
+          </label>
+          <div class="field wide"><span>Clip settings</span><div class="chips" data-settings="scout"></div></div>
+          <label class="field">
+            <span>Stop after (clips)</span>
+            <input name="max_clips" type="number" min="1" max="200" placeholder="no limit">
+          </label>
+          <label class="field">
+            <span>Quality</span>
+            <select name="quality">
+              <option value="best">Best</option>
+              <option value="1080p60,1080p,best">1080p</option>
+              <option value="720p60,720p,best">720p (saves disk)</option>
+            </select>
+          </label>
+          <div class="actions wide"><button class="btn primary" type="submit">Assign Scout</button></div>
+        </form>
+        <h3 class="sub">On duty</h3>
+        <div id="scouts" class="scouts"><p class="empty">No Scouts yet. Add a channel above. A Scout waits for the stream to go live, records it, and clips every spike.</p></div>
+      </div>
+
+      <div class="panel feed-panel">
+        <h2>Live activity</h2>
+        <ol class="feed" id="feed" aria-live="polite"></ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- GENERATE -->
+  <section class="page" id="page-generate" hidden>
+    <h1 class="title">Clip <em>Generator</em></h1>
+    <p class="lede">Already-finished stream, YouTube video or a file on your computer. The crew finds the best moments and turns each into a short.</p>
+    <div class="panel">
+      <form id="genForm" class="form" autocomplete="off">
+        <label class="field wide big">
+          <span>Paste a video link</span>
+          <input name="url" placeholder="https://www.twitch.tv/videos/… · https://youtube.com/watch?v=… · https://kick.com/…/videos/…">
+        </label>
+        <div class="or wide"><span>or</span></div>
+        <label class="drop wide" id="drop">
+          <input type="file" id="videoFile" accept="video/*,.ts,.mkv" hidden>
+          <strong>Drop a video file here</strong> or click to choose
+          <small id="videoName"></small>
+          <progress id="upProg" max="1" value="0" hidden></progress>
+        </label>
+        <label class="field">
+          <span>Streamer name (for titles)</span>
+          <input name="channel" placeholder="optional">
+        </label>
+        <label class="field">
+          <span>Chat log (better moments)</span>
+          <input type="file" id="chatFile" accept=".json,.jsonl,.txt">
+          <small class="hint">TwitchDownloader JSON, autoclip chat.jsonl, or “H:MM:SS message” lines. Without it, loudness is used.</small>
+        </label>
+        <div class="field wide"><span>Settings</span><div class="chips" data-settings="gen"></div></div>
+        <label class="field wide">
+          <span>Clips: up to <b id="maxOut">10</b></span>
+          <input type="range" name="max_clips" min="3" max="15" value="10" id="maxClips">
+        </label>
+        <div class="actions wide"><button class="btn primary big" type="submit">Get clips</button></div>
+      </form>
+    </div>
+    <div class="panel">
+      <h2>Jobs</h2>
+      <div id="jobs"><p class="empty">Nothing running.</p></div>
+    </div>
+  </section>
+
+  <!-- CLIPS -->
+  <section class="page" id="page-clips" hidden>
+    <h1 class="title">Your <em>clips</em></h1>
+    <p class="lede">Each clip has a score. Watch them all, keep the good ones, throw out the weak ones, then add yourself to it: a voiceover, a reaction or your own hook. That's what makes it your video and not a repost.</p>
+    <div class="filterbar">
+      <div class="seg" id="filters" role="tablist"></div>
+      <label class="sort">Sort
+        <select id="sort"><option value="score">Best score</option><option value="new">Newest</option></select>
+      </label>
+    </div>
+    <div class="clips" id="clips"></div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section class="page" id="page-settings" hidden>
+    <h1 class="title"><em>Settings</em></h1>
+    <div class="cols">
+      <div class="panel">
+        <h2>Producer brain</h2>
+        <p id="aiStatus" class="muted"></p>
+        <form id="keyForm" class="form" autocomplete="off">
+          <label class="field wide">
+            <span>Claude API key (optional)</span>
+            <input name="anthropic_key" type="password" placeholder="sk-ant-…" autocomplete="off">
+            <small class="hint">With a key, Claude scores each clip and writes its hook, title and caption. Without one, simple rules do it for free. The key is saved only on this computer, in <code id="outDir"></code>/.autoclip.</small>
+          </label>
+          <div class="actions wide">
+            <button class="btn primary" type="submit">Save key</button>
+            <button class="btn ghost" type="button" id="clearKey">Remove key</button>
+          </div>
+        </form>
+        <h2>Captions</h2>
+        <form id="whisperForm" class="form">
+          <label class="field wide">
+            <span>Whisper model</span>
+            <select name="whisper_model">
+              <option value="tiny">tiny: fastest, rough</option>
+              <option value="base">base: fast</option>
+              <option value="small">small: good balance (default)</option>
+              <option value="medium">medium: more accurate, slower</option>
+              <option value="large-v3">large-v3: best, needs a strong GPU</option>
+            </select>
+          </label>
+        </form>
+      </div>
+
+      <div class="panel">
+        <h2>Streamer permissions</h2>
+        <p class="muted">Ask the streamer first, or check whether they already allow clipping, and save their reply here. The Publisher warns you before you post a channel with no permission on record.</p>
+        <form id="permForm" class="form" autocomplete="off">
+          <label class="field"><span>Channel</span><input name="channel" required placeholder="kaicenat"></label>
+          <label class="field"><span>Answer</span>
+            <select name="allowed"><option value="1">Allowed</option><option value="0">Said no / not yet</option></select>
+          </label>
+          <label class="field wide"><span>Their reply / where they said it</span>
+            <textarea name="note" rows="2" placeholder="“Clip away, tag me” in Discord #clips, 18 Nov"></textarea></label>
+          <div class="actions wide"><button class="btn primary" type="submit">Save</button></div>
+        </form>
+        <ul class="perms" id="perms"></ul>
+      </div>
+    </div>
+
+    <div class="panel honest">
+      <h2>The honest part</h2>
+      <ul>
+        <li><b>The footage isn't yours.</b> The game belongs to its publisher and the stream to the streamer. Ask before you post their clips.</li>
+        <li><b>Plain reposts can lose the money.</b> YouTube's reused-content policy reviews clips and compilations. Add commentary or your own angle (the Voiceover tool is there for this).</li>
+        <li><b>Copyright claims are separate.</b> A streamer or publisher can still claim or take down a clip.</li>
+        <li><b>Views can pay, but nothing is guaranteed.</b> Being early and adding your own take is the edge.</li>
+      </ul>
+    </div>
+
+    <div class="panel credits">
+      <h2>Ideas borrowed from <a href="https://github.com/topics/ai-clipping" target="_blank" rel="noopener">#ai-clipping</a></h2>
+      <ul>
+        <li><a href="https://github.com/Anil-matcha/AI-Youtube-Shorts-Generator" target="_blank" rel="noopener">AI-Youtube-Shorts-Generator</a>: AI highlight scoring and ranking</li>
+        <li><a href="https://github.com/Yht20927/douyin-living" target="_blank" rel="noopener">douyin-living</a>: combining chat with speech to find moments</li>
+        <li><a href="https://github.com/osbytes/reelsaw" target="_blank" rel="noopener">reelsaw</a>: filler-word and pause cuts (Auto Edit)</li>
+        <li><a href="https://github.com/social-media-skills/ai-clipping-skill" target="_blank" rel="noopener">ai-clipping-skill</a>: post only after your yes, with a proof log</li>
+        <li><a href="https://github.com/mutonby/openshorts" target="_blank" rel="noopener">OpenShorts</a>: the per-clip tool buttons</li>
+      </ul>
+      <p class="muted small">Ideas only. No code was copied from these projects.</p>
+    </div>
+  </section>
+</main>
+
+<!-- clip editor -->
+<dialog id="editor" class="editor" aria-labelledby="edTitle">
+  <div class="ed-wrap">
+    <div class="ed-left">
+      <div class="phone"><video id="edVideo" controls playsinline preload="metadata"></video>
+        <div class="rendering" id="edRendering" hidden><span class="spinner"></span>Editor is rendering…</div>
+      </div>
+      <div class="ed-dl">
+        <a class="btn" id="edDownload" download>Download</a>
+        <a class="btn ghost" id="edRaw" target="_blank">Original</a>
+      </div>
+    </div>
+    <div class="ed-right">
+      <button class="close" id="edClose" aria-label="Close">×</button>
+      <div class="ed-head">
+        <span class="score big" id="edScore"></span>
+        <div>
+          <h2 id="edTitle"></h2>
+          <p class="muted" id="edMeta"></p>
+        </div>
+      </div>
+      <p class="reason" id="edReason"></p>
+
+      <div class="decide">
+        <button class="btn keep" data-status="kept">Keep</button>
+        <button class="btn discard" data-status="discarded">Throw out</button>
+        <span class="status-pill" id="edStatus"></span>
+      </div>
+
+      <h3>Tools</h3>
+      <div class="tools">
+        <button class="tool" data-tool="autoedit"><i>✂</i><b>Auto Edit</b><small>cut pauses &amp; filler words</small></button>
+        <button class="tool" data-tool="captions"><i>Aa</i><b>Subtitles</b><small>word-by-word captions</small></button>
+        <button class="tool" data-tool="hook_on"><i>⚡</i><b>Viral Hook</b><small>title over the first seconds</small></button>
+        <button class="tool" data-tool="voice"><i>🎙</i><b>Voiceover</b><small>add your own voice</small></button>
+      </div>
+
+      <div class="row">
+        <label class="field"><span>Shape</span><div class="seg small" id="edRatio"></div></label>
+        <label class="field"><span>Caption colour</span><div class="seg small" id="edColor"></div></label>
+      </div>
+      <div class="row">
+        <label class="field"><span>Layout</span><div class="seg small" id="edLayout"></div></label>
+        <label class="field" id="edFacecamWrap" hidden><span>Webcam area x,y,w,h</span><input id="edFacecam" placeholder="0.75,0.7,0.25,0.3"></label>
+      </div>
+
+      <form id="textForm" class="form tight">
+        <label class="field wide"><span>Hook <button type="button" class="link" id="regen">Rewrite with Producer</button></span><input name="hook" maxlength="80"></label>
+        <label class="field wide"><span>Title</span><input name="title" maxlength="100"></label>
+        <label class="field wide"><span>Post caption</span><textarea name="caption" rows="2"></textarea></label>
+        <label class="field wide"><span>Hashtags</span><input name="hashtags" placeholder="shorts gaming streamer"></label>
+        <div class="actions wide"><button class="btn" type="submit">Save text</button></div>
+      </form>
+
+      <h3>Publish</h3>
+      <div class="publish">
+        <div class="perm-warn" id="edPerm" hidden></div>
+        <div class="actions">
+          <button class="btn primary" id="approve">Approve for posting</button>
+          <button class="btn ghost" id="copyPost">Copy post text</button>
+        </div>
+        <form id="postedForm" class="inline-form">
+          <input name="url" placeholder="Link to the posted short (optional)">
+          <button class="btn" type="submit">Mark as posted</button>
+        </form>
+      </div>
+
+      <details class="more"><summary>Transcript</summary><p id="edTranscript" class="muted"></p></details>
+      <details class="more"><summary>Proof log</summary><ol id="edLog" class="log"></ol></details>
+    </div>
+  </div>
+</dialog>
+
+<!-- voiceover recorder -->
+<dialog id="recorder" class="recorder" aria-labelledby="recTitle">
+  <h2 id="recTitle">Record a voiceover</h2>
+  <p class="muted">The clip plays from the start while you talk over it. Wear headphones so the mic only hears you. The stream audio is turned down automatically under your voice.</p>
+  <div class="rec-state" id="recState">Ready</div>
+  <div class="actions">
+    <button class="btn primary" id="recStart">● Start recording</button>
+    <button class="btn" id="recStop" disabled>Stop</button>
+    <button class="btn ghost" id="recRemove">Remove voiceover</button>
+    <button class="btn ghost" id="recCancel">Close</button>
+  </div>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="/static/app.js"></script>
+</body>
+</html>
